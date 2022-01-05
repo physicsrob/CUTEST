@@ -1,14 +1,10 @@
+	include src/const.asm
+	include src/macros.asm
 	include src/preamble.asm
 	include src/entry.asm
 	include src/console.asm
 	include src/vdm.asm
 	include src/startup.asm
 	include src/command.asm
-	include src/command_dump.asm
-	include src/command_entr.asm
-	include src/command_execute.asm
-	include src/command_cassette.asm
-	include src/command_set.asm
 	include src/cassette.asm
-	include src/const.asm
 	include src/memory.asm
