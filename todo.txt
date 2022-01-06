@@ -1,0 +1,6 @@
+Create a macro, READ_LINE_TO_DE
+READ_LINE_TO_DE	MACRO
+		CALL READ_LINE
+		CALL STUP
+		XCHG
+better yet, refactor READ_LINE to just return the data in DE
