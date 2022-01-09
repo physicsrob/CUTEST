@@ -7,3 +7,7 @@
 	ADD_COMMAND 6, 'CA', TLIST, '(/unit) Catalog tape files'
 	ADD_COMMAND 7, 'SE', CSET, 'Set'
 	ADD_COMMAND 8, 'CU', CUSET, 'Custom command'
+	
+	IF STRINGS = TRUE
+	ADD_COMMAND 9, 'HE', HELP, 'Help'
+	ENDIF

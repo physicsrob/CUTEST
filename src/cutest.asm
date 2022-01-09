@@ -3,7 +3,7 @@
 	include macros.asm
 	include config/pseudoports.asm
 	include config/commands.asm
-	include console.asm
+	include console/console.asm
 	IFDEF USEVDM
 	include vdm.asm
 	ENDIF
