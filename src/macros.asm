@@ -1,3 +1,5 @@
+	MACEXP_DFT	noif, nomacro
+
 CALL_UNTIL_NZ	MACRO	ADDR
 $$loop		CALL ADDR
 		JZ $$loop
@@ -26,8 +28,8 @@ IN_i:		EQU $
 		RET
 
 		IF STRLEN("VDM")>0
+USEVDM:	   EQU TRUE
 OUT_i:		   EQU VDM01
-USE_VDM:	   EQU TRUE
 		ELSE
 OUT_i:		   EQU $
 $$loop		   IN STATUSPORT
