@@ -4,9 +4,9 @@
 	include config/pseudoports.asm
 	include config/commands.asm
 	include console/console.asm
-	IFDEF USEVDM
+	ifdef USEVDM
 	include vdm.asm
-	ENDIF
+	endif
 	include startup.asm
 	include command/command.asm
 	include cassette.asm

@@ -1,25 +1,25 @@
 	PUBLIC	HELP
-HELP:	EQU	$
-	LXI	H, HELP_STR
-	JMP	WRITE_LINE
+HELP:	equ	$
+	lxi	H, HELP_STR
+	jmp	write_line
 
 HELP_STR: \
-	EQU	$
-	DB	LF
-	GET_HELP_ENTRY 0
-	GET_HELP_ENTRY 1
-	GET_HELP_ENTRY 2
-	GET_HELP_ENTRY 3
-	GET_HELP_ENTRY 4
-	GET_HELP_ENTRY 5
-	GET_HELP_ENTRY 6
-	GET_HELP_ENTRY 7
-	GET_HELP_ENTRY 8
-	GET_HELP_ENTRY 9
-	GET_HELP_ENTRY 10
-	GET_HELP_ENTRY 11
-	GET_HELP_ENTRY 12
-	GET_HELP_ENTRY 13
-	GET_HELP_ENTRY 14
-	GET_HELP_ENTRY 15
-	DB	0	;END OF STRING
+	equ	$
+	db	LF
+	get_help_entry 0
+	get_help_entry 1
+	get_help_entry 2
+	get_help_entry 3
+	get_help_entry 4
+	get_help_entry 5
+	get_help_entry 6
+	get_help_entry 7
+	get_help_entry 8
+	get_help_entry 9
+	get_help_entry 10
+	get_help_entry 11
+	get_help_entry 12
+	get_help_entry 13
+	get_help_entry 14
+	get_help_entry 15
+	db	0	;END OF STRING

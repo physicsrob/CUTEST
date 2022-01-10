@@ -1,78 +1,78 @@
-	MACEXP_DFT	noif, nomacro
+	macexp_dft	noif, nomacro
 
-CALL_UNTIL_NZ	MACRO	ADDR
-$$loop		CALL ADDR
-		JZ $$loop
-		ENDM
+call_until_nz	macro	addr
+$$loop		call addr
+		jz $$loop
+		endm
 
 
-ADD_PSEUDOPORT	MACRO	i, \
+add_PSEUDOPORT	macro	i, \
 				VDM, \
 				DATAPORT, \
-				STATUSPORT, \
+				staTUSPORT, \
 				READMASK, \
-				READINVERT, \
+				READiNVERT, \
 				WRITEMASK, \
 				RESETMASK, \
-				SETUPMASK \
+				setupMASK \
 		
 
-IN_i:		EQU $
-		IN STATUSPORT
-		IF STRLEN("READINVERT")>0
+in_i:		equ $
+		in staTUSPORT
+		if strlen("READiNVERT")>0
 		   CMA
-		ENDIF
-		ANI READMASK
-		RZ
-		IN DATAPORT
-		RET
+		endif
+		ani READMASK
+		rz
+		in DATAPORT
+		ret
 
-		IF STRLEN("VDM")>0
-USEVDM:	   EQU TRUE
-OUT_i:		   EQU VDM01
+		if strlen("VDM")>0
+USEVDM:	   equ TRUE
+out_i:		   equ VDM01
 		ELSE
-OUT_i:		   EQU $
-$$loop		   IN STATUSPORT
-		   ANI WRITEMASK
-		   JZ $$loop
-		   MOV A,B
-		   OUT DATAPORT
-		   RET
-		ENDIF
+out_i:		   equ $
+$$loop		   in staTUSPORT
+		   ani WRITEMASK
+		   jz $$loop
+		   mov A,B
+		   out DATAPORT
+		   ret
+		endif
 
-SETUP_i	MACRO
-		   IF STRLEN("RESETMASK")>0
-			MVI	A, RESETMASK 
-			OUT	STATUSPORT	
-		   ENDIF
-		   IF STRLEN("SETUPMASK")>0
-			MVI	A, SETUPMASK 
-			OUT	STATUSPORT	
-		   ENDIF
-		ENDM
+setup_i	macro
+		   if strlen("RESETMASK")>0
+			mvi	A, RESETMASK 
+			OUT	staTUSPORT	
+		   endif
+		   if strlen("setupMASK")>0
+			mvi	A, setupMASK 
+			OUT	staTUSPORT	
+		   endif
+		endm
 
-		ENDM
+		endm
 	
 
-ADD_COMMAND	MACRO i, NAME, PTR, HLP
-CMDNAME_i	SET NAME
-CMDPTR_i	SET PTR
-CMDHELP_i	SET HLP
-		ENDM	
+add_command	macro i, NAME, PTR, HLP
+CMDNAME_i	set NAME
+CMDPTR_i	set PTR
+CMDHELP_i	set HLP
+		endm	
 
 
-GET_COMTAB_ENTRY	MACRO i
-			IFDEF CMDNAME_i
-			DB	CMDNAME_i
-			DW	CMDPTR_i
-			ENDIF
-			ENDM
+get_comtab_entry	macro i
+			ifdef CMDNAME_i
+			db	CMDNAME_i
+			dw	CMDPTR_i
+			endif
+			endm
 
-GET_HELP_ENTRY	MACRO i
-			IFDEF CMDHELP_i
-			DB CMDNAME_i
-			DB '   '
-			DB CMDHELP_i
-			DB LF
-			ENDIF
-			ENDM
+get_help_entry	macro i
+			ifdef CMDHELP_i
+			db CMDNAME_i
+			db '   '
+			db CMDHELP_i
+			db LF
+			endif
+			endm

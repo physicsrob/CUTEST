@@ -1,58 +1,59 @@
-; AINP CONTINUES HERE (IT COULD HAVE BEEN A "JMP" THOUGH)
-IN_PSEUDO:	EQU $
-	PUSH	H	;SAVE HL FM ENTRY
-	LXI	H,ITAB
-;
-;    THIS ROUTINE PROCESSES THE I/O REQUESTS
-;
-IOPRC:	ANI	3	;KEEP REGISTER "A" TO FOUR VALUES
-	RLC		;COMPUTE ENTRY ADDRESS
-	ADD	L
-	MOV	L,A	;WE HAVE ADDRESS
-	JMP	DISPT	;DISPATCH TO IT
-;
-;
-OUT_PSEUDO:	EQU	$	;PROCESS OUTPUT REQUESTS
-	PUSH	H	;SAVE REGS
-	LXI	H,OTAB	;POINT TO OUTPUT DISPATCH TABLE
-	JMP	IOPRC	;DISPATCH FOR PROPER PSUEDO PORT
+; --- in_pseudo ---
+; Read one character from the pseudoport in A
+; Result is in A
+; ----------------- 
+in_pseudo:	\
+	push	H	;SAVE HL FM ENTRY
+	lxi	H,ITAB
+ioprc:	ani	3	;KEEP REGISTER "A" TO FOUR VALUES
+	rlc		;COMPUTE ENTRY ADDRESS
+	add	L
+	mov	L,A	;WE HAVE ADDRESS
+	jmp	DISPT	;DISPATCH TO IT
 
-;
-;   OUTPUT DEVICE TABLE
-;
-OTAB:	EQU $
-	IFDEF OUT_0
-	DW OUT_0
-	ENDIF
-	IFDEF OUT_1
-	DW OUT_1
-	ENDIF
-	IFDEF OUT_2
-	DW OUT_2
-	ENDIF
-	IFDEF OUT_3
-	DW OUT_3
-	ENDIF
-;
-;    INPUT DEVICE TABLE
-;
-ITAB:	EQU $
-	IFDEF IN_0
-	DW IN_0
-	ENDIF
-	IFDEF IN_1
-	DW IN_1
-	ENDIF
-	IFDEF IN_2
-	DW IN_2
-	ENDIF
-	IFDEF IN_3
-	DW IN_3
-	ENDIF
-;
-;
-;
-;   THIS ROUTINE READS A LINE FROM THE CURRENT PSEUDOPORt 
+; --- out_pseudo ---
+; Output one character (in B) to the pseudoport in A
+; ------------------
+out_pseudo:	\
+	push	H	;SAVE REGS
+	lxi	H,OTAB	;POINT TO OUTPUT DISPATCH TABLE
+	jmp	ioprc	;DISPATCH FOR PROPER PSUEDO PORT
+
+; OUTPUT DEVICE TABLE
+; Note, to change this table, update config/pseudoports.asm
+OTAB:	equ $
+	ifdef out_0
+	dw out_0
+	endif
+	ifdef out_1
+	dw out_1
+	endif
+	ifdef out_2
+	dw out_2
+	endif
+	ifdef out_3
+	dw out_3
+	endif
+
+; INPUT DEVICE TABLE
+; Note, to change this table, update config/pseudoports.asm
+ITAB:	equ $
+	ifdef in_0
+	dw in_0
+	endif
+	ifdef in_1
+	dw in_1
+	endif
+	ifdef in_2
+	dw in_2
+	endif
+	ifdef in_3
+	dw in_3
+	endif
+
+
+; --- read_line ---
+; This rouTINE reads a line from the current pseudoport.
 ;
 ;  C/R   TERMINATES THE SEQUENCE ERASING ALL CHARS TO THE
 ;        RIGHT OF THE CURSOR
@@ -60,116 +61,134 @@ ITAB:	EQU $
 ;  ESC   RESETS TO COMMAND MODE.
 ;
 ;  Results stored in INLIN buffer
-READ_LINE:	\
-	LXI	H,INLIN-1	; Pointer to char in front of input buffer
-	MVI	M,7	;MAKE SURE IT IS "BELL" TO KEEP FM DEL'ING TOO FAR
-	INX	H	;NOW PT TO INPUT BFR
-	SHLD	INPTR	;SAVE AS STARTING PTR
-	MVI	A,80	;NUMBER OF CHARS IN LINE (MAX)
+; ----------------
+read_line:	\
+	lxi	H,INLIN-1	; Pointer to char in front of input buffer
+	mvi	M,7	;MAKE SURE IT IS "BELL" TO KEEP FM DEL'ING TOO FAR
+	inx	H	;NOW PT TO INPUT BFR
+	shld	INPTR	;SAVE AS STARTING PTR
+	mvi	A,80	;NUMBER OF CHARS in LINE (MAX)
 
-; Set the buffer to a string of blanks (' ')
+; set the buffer to a string of blanks (' ')
 .reset_loop:	\
-	MVI	M,' '	;BLANKS
-	INX	H	;NEXT CHAR
-	DCR	A	;FOR THIS COUNT
-	JNZ	.reset_loop	;ENTIRE LINE
+	mvi	M,' '	;BLANKS
+	inx	H	;NEXT CHAR
+	dcr	A	;FOR THIS COUNT
+	jnz	.reset_loop	;ENTIRE LINE
 
 read_loop:	\
-	CALL_UNTIL_NZ	SINP	; READ INPUT DEVICE
-	ANI	7FH	;MAKE SURE NO X'80' BIT DURING CMND MODE
-	JZ	STRTD	;IF EITHER MODE (OR CTL-@)
-	MOV	B,A
-	CPI	CR	;IS IT CR?
-	JZ finish_line
-+:	CPI	LF	;IS IT A LINEFEED
-	JZ	finish_line	;YES--TERMINATE LINE AS IS
-	LHLD	INPTR	;CRNT LINE PTR
-	CPI	7FH	;DELETE CHR?
-	JNZ	+	;NO--OK
-	MVI	B,BACKS	;REPLACE IT
+	call_until_nz	SINP	; READ INPUT DEVICE
+	if STRINGS = TRUE
+	call	to_upper
+	endif
+	ani	7FH	;MAKE SURE NO X'80' BIT DURING CMND MODE
+	jz	STRTD	;if EITHER MODE (OR CTL-@)
+	mov	B,A
+	cpi	CR	;IS IT CR?
+	jz finish_line
++:	cpi	LF	;IS IT A LINEFEED
+	jz	finish_line	;YES--TERMINATE LINE AS IS
+	lhld	INPTR	;CRNT LINE PTR
+	cpi	7FH	;DELETE CHR?
+	jnz	+	;NO--OK
+	mvi	B,BACKS	;REPLACE IT
 	DCX	H	;BACK LINE PTR UP TOO
-	MVI	A,'G'-40H	;SEE IF A BELL
-	CMP	M	;IS IT?
-	JNZ	++	;NO--OK
-	MOV	B,A	;YES--RING THE BELL THEN
-+:		EQU	$	;STORE CHAR IN INPUT AREA
-	MOV	M,B	;PLACE CHAR INTO LINE
-	INX	H	;NEXT CHAR
-+:		EQU	$	;SAVE NEW LINE PTR
-	SHLD	INPTR	;SAVE PTR
+	mvi	A,'G'-40H	;SEE if A BELL
+	cmp	M	;IS IT?
+	jnz	++	;NO--OK
+	mov	B,A	;YES--RING THE BELL THEN
++:		equ	$	;STORE CHAR in INPUT AREA
+	mov	M,B	;PLACE CHAR INTO LINE
+	inx	H	;NEXT CHAR
++:		equ	$	;SAVE NEW LINE PTR
+	shld	INPTR	;SAVE PTR
 
-	CALL	SOUT
-	JMP	read_loop
+	call	SOUT
+	jmp	read_loop
 finish_line:	\
 	; Assume non-vdm input
-	; Set INPTR to beginning of input buffer (INLIN)
-	LXI	H,INLIN	;ASSUME NON-VDM INPUT
-	SHLD	INPTR	;ALSO RESET PTR FOR NOW
-	XCHG		;DE=ADDR
-	RET
+	; set INPTR to beginning of input buffer (INLIN)
+	lxi	H,INLIN	;ASSUME NON-VDM INPUT
+	shld	INPTR	;ALSO RESET PTR FOR NOW
+	xchg		;DE=addr
+	ret
 
+; --- To Upper Subroutine ---
+; Makes character in A register upper case
+; ---------------------------
+	if STRINGS = TRUE
+to_upper: \
+	cpi	'a'
+	rc		; Carry indicates A is less than 'a'
+	cpi	'z' + 1
+	rnc		; No carry means that A is less than or equal to z
+	xri	20h	; Remove lower case bit
+	ret
+	endif
+	
 ; --- Write Line Subroutine ---
 ; Prints a line to the current pseudoport
 ; HL should point to null terminated string
 ; -----------------------------
-	IF STRINGS = TRUE
-WRITE_LINE:
-	MOV	A, M
-	ORA	A
-	RZ	; Null -- return
-	CPI	LF
-	JNZ	+
-	CALL	CRLF
-	JMP	.cont
-+:	MOV	B, A
-	CALL	SOUT
+	if STRINGS = TRUE
+write_line:
+	mov	A, M
+	ora	A
+	rz	; Null -- RETURN
+	cpi	LF
+	jnz	+
+	call	write_crlf
+	jmp	.cont
++:	mov	B, A
+	call	SOUT
 .cont: \
-	INX	H
-	JMP WRITE_LINE
-	ENDIF
+	inx	H
+	jmp write_line
+	endif
 
-CRLF:	MVI	B,LF	;LINE FEED
-	CALL	SOUT
-	MVI	B,CR	;CARRIAGE RETURN
-	CALL	SOUT
-	LDA	NUCNT	;GET COUNT OF NULLS TO OUTPUT
-	MOV	C,A	;SAVE COUNT IN C
--:	DCR	C
-	RM		;COUNTED DOWN PAST ZERO (MAX COUNT IS X'7F')
-	XRA	A	;HERE IS THE NULL
-	CALL	OUTH	;OUTPUT IT
-	JMP	-	;LOOP FOR NUMBER OF NULLS
+write_crlf:	mvi	B,LF	;LINE FEED
+	call	SOUT
+	mvi	B,CR	;CARRIAGE RETURN
+	call	SOUT
+	lda	NUCNT	;GET COUNT OF NULLS TO OUTPUT
+	mov	C,A	;SAVE COUNT in C
+-:	dcr	C
+	rm		;COUNTED DOWN PAST ZERO (MAX COUNT IS X'7F')
+	xra	A	;HERE IS THE NULL
+	call	write_a	;OUTPUT IT
+	jmp	-	;LOOP FOR NUMBER OF NULLS
 ;
 ;    OUTPUT HL AS HEX 16 BIT VALUE
 ;
-ADOUT:	MOV	A,H	;H FIRST
-	CALL	HEOUT
-	MOV	A,L	;THEN L FOLLOWED BY A SPACE
+write_hex_pair:	\
+	mov	A,H	;H FIRST
+	call	write_hex
+	mov	A,L	;THEN L FOLLOWED BY A SPACE
 ;
-HBOUT:	CALL	HEOUT
-	CALL	SINP	;SEE IF WE SHD ESCAPE FM DUMP
-	JZ	BOUT	;NO--ADD THE SPACE THEN
-	ANI	7FH	;MAKE SURE ITS CLEAR OF PARITY
-	JZ	COMND	;EITHER MODE (OR CTL-@)
-	CPI	' '	;IS IT SPACE
-	JNZ	BOUT	;NO--IGNORE THE CHAR
-WTLP1:	CALL	SINP	;ON SPACE, WAIT FOR ANY OTHER CHAR
-	JZ	WTLP1	;JUST LOOP AFTER A SPACE UNTIL ANY KEY PRESSED
-BOUT:	MVI	B,' '
-	JMP	SOUT	;PUT IT OUT
+HBOUT:	call	write_hex
+	call	SINP	;SEE if WE SHD ESCAPE FM DUMP
+	jz	BOUT	;NO--add THE SPACE THEN
+	ani	7FH	;MAKE SURE ITS CLEAR OF PARITY
+	jz	COMND	;EITHER MODE (OR CTL-@)
+	cpi	' '	;IS IT SPACE
+	jnz	BOUT	;NO--IGNORE THE CHAR
+WTLP1:	call	SINP	;ON SPACE, WAIT FOR ANY OTHER CHAR
+	jz	WTLP1	;JUST LOOP AFTER A SPACE UNTIL ANY KEY PRESSED
+BOUT:	mvi	B,' '
+	jmp	SOUT	;PUT IT OUT
 ;
-HEOUT:	MOV	C,A	;GET THE CHARACTER
-	RRC
-	RRC		;MOVE THE HIGH FOUR DOWN
-	RRC
-	RRC
-	CALL	HEOU1	;PUT THEM OUT
-	MOV	A,C	;THIS TIME THE LOW FOUR
-;
-HEOU1:	ANI	0FH	;FOUR ON THE FLOOR
-	ADI	48	;WE WORK WITH ASCII HERE
-	CPI	58	;0-9?
-	JC	OUTH	;YUP!
-	ADI	7	;MAKE IT A LETTER
-OUTH:	MOV	B,A	;OUTPUT IT FROM REGISTER 'B'
-	JMP	SOUT
+write_hex:	mov	C,A	;GET THE CHARACTER
+	rrc
+	rrc		;MOVE THE HIGH FOUR DOWN
+	rrc
+	rrc
+	call	+	;PUT THEM OUT
+	mov	A,C	;THIS TIME THE LOW FOUR
++:	ani	0FH	;FOUR ON THE FLOOR
+	adi	48	;WE WORK WITH ASCII HERE
+	cpi	58	;0-9?
+	jc	write_a;YUP!
+	adi	7	;MAKE IT A LETTER
+write_a: \
+	mov	B,A	;OUTPUT IT FROM REGISTER 'B'
+	jmp	SOUT
