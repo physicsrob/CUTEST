@@ -1,52 +1,53 @@
-	SECTION	COMMAND
-	PUBLIC	COMND, DISPT
-;
-;
+	section COMMAND
+	public	COMND, DISPT
+
+; ------------------------------------------------------ 
 ;
 ;            =--  COMMAND MODE  --=
-;
-;
-;   THIS ROUTINE GETS AND PROCESSES COMMANDS
-;
+; This is the main loop of cutest.  We get and process 
+; commands forever.
+;  
+; ------------------------------------------------------ 
 COMND:	lxi	SP,TOP_OF_STACK	;set STACK POINTER
-	call	PROMPT		;PUT PROMPT ON SCREEN
+	call	write_prompt		;PUT PROMPT ON SCREEN
 	call	read_line	;INIT TO GET COMMAND LINE
-	call	PROCESS_COMMAND	;PROCESS THE LINE
+	call	process_command	;PROCESS THE LINE
 	jmp	COMND		;OVER AND OVER
 
-;
-;
-;
-;
-;      FIND AND PROCESS COMMAND
-;
-PROCESS_COMMAND:	equ	$	;PROCESS THIS COMMAND LINE
-			lxi	H,START	;PREP SO THAT HL WILL PT TO CUTER LATER
-			push	H	;PLACE PTR TO CUTER ON STACK FOR LATER DISPT
-			call	FIND_NON_BLANK	;SCAN PAST BLANKS
-			jz	ERROR_HANDLER		;NO COMMAND?
-			xchg		;HL HAS FIRST CHR
-			if STRINGS = TRUE
-			ldax	H
-			cpi	'?'
-			jnz	+
-			lxi	H, HELP
-			xthl
-			ret
-			endif
-+:			lxi	D,COMTAB	;POINT TO COMMAND TABLE
-			call	FIND_CMD	;SEE if in PRIMARY TABLE
-			CZ	FIND_CUSTOM_CMD	;TRY CUSTOM ONLY if NOT PRIMARY COMMAND
-; **** DROP THRU TO DISPT ***
+; --- Process Command ---
+; process_command takes the contents of the string
+; contained in de, looks up the appropriate command
+; and dispatches to the appropriate address.
+; -----------------------
+process_command:	\
+	lxi	H,START		;PREP SO THAT HL WILL PT TO CUTER LATER
+	push	H			;PLACE PTR TO CUTER ON STACK FOR LATER DISPT
+	call	find_non_blank	;SCAN PAST BLANKS
+	jz	error_handler		;NO COMMAND?
+	xchg				;HL HAS FIRST CHR
+	
+	if STRINGS = TRUE ; Process help question mark
+	ldax	H
+	cpi	'?'
+	jnz	+
+	lxi	H, HELP
+	xthl
+	ret
+	endif
+
++:	lxi	D,CMDTAB	;POINT TO COMMAND TABLE
+	call	find_cmd	;SEE if in PRIMARY TABLE
+	CZ	find_custom_cmd	;TRY CUSTOM ONLY if NOT PRIMARY COMMAND
+; **** DROP THRU TO DISP0 ***
 
 
 ;
 ; THIS ROUTINE DISPTACHES TO THE addr AT CONTENTS OF HL.
 ; Assumed that previous HL was pushed to the stack, and
-; we restore the previous value before calling the rouTINE.
+; we restore the previous value before calling the routine.
 ;
 DISP0:	equ	$	;HERE TO EITHER DISPATCH OR DO ERROR
-	jz	ERROR_HANDLER		;NOT in EITHER TABLE
+	jz	error_handler		;NOT in EITHER TABLE
 	inx	D	;PT DE TO addr OF RTN
 	xchg		;HL=addr OF addr OF RTN
 DISPT:	equ	$	;DISPATCH
@@ -54,8 +55,8 @@ DISPT:	equ	$	;DISPATCH
 	inx	H
 	mov	H,M	;HI BYTE
 	mov	L,A	;AND LO, HL NOW COMPLETE
-	xthl		;HL RESTORED AND addr ON STACK
-	mov	A,L	;ALWAYS PASS L in "A" (PRIMARILY FOR set'S)
+	xthl		;HL RESTORED AND ADDR ON STACK
+	mov	A,L	;ALWAYS PASS L in "A" (PRIMARILY FOR SET'S)
 	
 	; This following ret is a bit confusing since 
 	; we're not RETURNing from a Subroutine. Instead,
@@ -66,47 +67,45 @@ DISPT:	equ	$	;DISPATCH
 
 ; --- Find Command Subroutine ---
 ;
-;   This rouTINE searches through a table, pointed to
+;   This routine searches through a table, pointed to
 ;  by DE, for a double character match of the string
 ;  point to by HL. if no match is found the scan ends
 ;  with the zero flag set, else non-zero set.
 ;
-;  FIND_CUSTOM_CMD -- Search through CUSTOM_COMMAND_TAB
-;  FIND_CMD -- Search through table loaded in DE
+;  find_custom_cmd -- Search through CUSTOM_COMMAND_TAB
+;  find_cmd -- Search through table loaded in DE
 ; -------------------------------
-FIND_CUSTOM_CMD:	\
+find_custom_cmd:	\
 	lxi	D,CUSTOM_COMMAND_TAB	
-FIND_CMD:	\
+find_cmd:	\
 	ldax	D	; Load
 	ora	A	;TEST FOR TABLE END
 	rz		;NOT FOUND POST THAT AND RETURN
 	push	H	;SAVE START OF SCAN ADDRESS
 	cmp	M	;TEST FIRST CHR
 	inx	D
-	jnz	NCOM
+	jnz	+	
 ;
 	inx	H
 	ldax	D
 	cmp	M	;NOW SECOND CHARACTER
-	jnz	NCOM	;GOODNESS
+	jnz	+	;GOODNESS
 ;
 	pop	H	;RETURN HL TO PT TO CHAR START
 	ora	A	;FORCE TO NON-ZERO FLAG
 	ret		;LET callER KNOW
 ;
 ;
-NCOM:	inx	D	;GO TO NEXT ENTRY
++:	inx	D	;GO TO NEXT ENTRY
 	inx	D
 	inx	D
 	pop	H	;GET BACK ORIGINAL ADDRESS
-	jmp	FIND_CMD	;CONTINUE SEARCH
-;
-;           COMMAND TABLE
-;
-;  THIS TABLE DESCRIBES THE VALID COMMANDS FOR CUTER
-;
-COMTAB: \
-	equ	$	;START OF KNOWN COMMANDS
+	jmp	find_cmd	;CONTINUE SEARCH
+
+
+; COMMAND TABLE
+; To modify the command table entry's, edit config/commands.asm
+CMDTAB: \
 	get_comtab_entry 0
 	get_comtab_entry 1
 	get_comtab_entry 2
@@ -123,64 +122,39 @@ COMTAB: \
 	get_comtab_entry 13
 	get_comtab_entry 14
 	get_comtab_entry 15
-	db	0	;END OF TABLE MARK
-;
-;
-;       SECONDARY COMMAND TABLE FOR set COMMAND
-;
-setAB:	db	'TA'	;set TAPE SPEED
-	dw	TASPD
-	db	'S='	;set DISPLAY SPEED
-	dw	DISPD
-	db	'I='	;set INPUT PORT
-	dw	setIN
-	db	'O='	;set OUTPUT PORT
-	dw	setOT
-	db	'CI'	;set CUSTOM DRIVER ADDRESS
-	dw	setCI
-	db	'CO'	;set CUSTOM OUTPUT DRIVER ADDRESS
-	dw	setCO
-	db	'XE'	;set HEADER XEQ ADDRESS
-	dw	setXQ
-	db	'TY'	;set HEADER TYPE
-	dw	setTY
-	db	'N='	;set NUMBER OF NULLS
-	dw	setNU
-	db	'CR'	;set CRC (NOrmAL OR IGNORE CRC ERRORS)
-	dw	setCR
-	db	0	;END OF TABLE MARK
-; -*-
-;
-;
-;      OUTPUT A CRLF FOLLOWED BY A PROMPT
-;
-PROMPT: \
+	db	0
+
+; --- write_prompt ---
+; output a crlf followed by a prompt
+; --------------------
+write_prompt: \
 	call	write_crlf
-	mvi	B,'>'	;THE PROMPT
+	mvi	B,'>'	;THE PROMPT 
+	call	SOUT	;PUT IT ON THE SCREEN
+	mvi	B,' '	;SPACE
 	jmp	SOUT	;PUT IT ON THE SCREEN
 
-;
-;
-; FIND_NEXT_ARG
-; This rouTINE will scan until it find the first blank character,
+; --- find_next_arg ---
+; This routine will scan until it find the first blank character,
 ; and then once a blank character is identified, it will continue
 ; to scan until a non-blank is identified.  This is the first
 ; character of the next argument in the command.
 ; Arguments:
 ;	DE - set to input buffer
-; RETURNs:
+; Returns:
 ;	zero flag set if it was unable to find another argument
 ;	zero flag not set if found another argu
-; RETURNs non-zero if it has found another argument.
-; 	The ADDRESS of the argument will be loaded in DE 
-FIND_NEXT_ARG:	\
+; Returns non-zero if it has found another argument.
+; 	The address of the argument will be loaded in DE 
+; --------------------
+find_next_arg:	\
 	mvi	C,12	;MAXIMUM COMMAND STRING
 -:	ldax	D
 	cpi	BLANK
-	jz	FIND_NON_BLANK	;GOT A BLANK NOW SCAN PAST IT
+	jz	find_non_blank	;GOT A BLANK NOW SCAN PAST IT
 	inx	D
 	cpi	'='	;A equAL WILL ALSO STOP US (AT NEXT CHAR)
-	jz	FIND_NON_BLANK	;FOUND, DE PT TO NEXT CHAR
+	jz	find_non_blank	;FOUND, DE PT TO NEXT CHAR
 	dcr	C	;NO MORE THAN TWELVE
 	jnz	-
 	ret		;GO BACK WITH ZERO FLAG set
@@ -189,39 +163,38 @@ FIND_NEXT_ARG:	\
 ;  SCAN PAST UP TO 10 BLANK POSITIONS LOOKING FOR
 ; A NON BLANK CHARACTER.
 ;
-FIND_NON_BLANK:	\
+find_non_blank:	\
 	mvi	C,10	;SCAN TO FIRST NON BLANK CHR WITHin 10
-FIND_NON_BLANK1:	\
+find_non_blank1:	\
 	ldax	D	;GET NEXT CHARACTER
 	cpi	SPACE
 	rnz		;WE'RE PAST THEM
 	inx	D	;NEXT SCAN ADDRESS
 	dcr	C
 	rz		;COMMAND ERROR
-	jmp	FIND_NON_BLANK1	;KEEP LOOPING
+	jmp	find_non_blank1	;KEEP LOOPING
 ;
-; GET_HEX_ARG
-; This rouTINE find the next argument, converts it from hex,
+; get_hex_arg
+; This routine find the next argument, converts it from hex,
 ; and stores the results IN HL.  On error we call the error handler.
 ; Arguments:
 ;   DE - Pointer to input buffer
 ; RETURNs:
 ;   Hex value stored into H/L
-GET_HEX_ARG:	\
-	call	FIND_NEXT_ARG
-	jz	ERROR_HANDLER
+get_hex_arg:	\
+	call	find_next_arg
+	jz	error_handler
 
-;
-; HEX_STR_TO_HL
-; THIS ROUTINE CONVERTS ASCII DIGITS INTO BINARY FOLLOWING
-; A STANDARD HEX CONVERSION.  THE SCAN STOPS WHEN AN ASCII
-; SPACE IS ENCOUNTERED.  PARAMETER ERRORS REPLACE THE ERROR
-; CHARACTER ON THE SCREEN WITH A QUESTION MARK.
+; --- hex_str_to_hl ---
+; This routine converts ascii digits into binary following
+; a standard hex conversion.  The scan stops when an ascii
+; space is encountered.  Errors get sent to error_handler.
 ; Arguments:
 ;    DE - Pointer to string
-; RETURNs:
+; Returns:
 ;    Hex valued into H/L
-HEX_STR_TO_HL: \
+; -------------------
+hex_str_to_hl: \
 	lxi	H,0	;CLEAR H & L
 -:	ldax	D	;GET CHARACTER
 	cpi	20H	;IS IT A SPACE?
@@ -238,7 +211,7 @@ HEX_STR_TO_HL: \
 	dad	H
 	dad	H
 	call	+	;DO THE CONVERSION
-	jnc	ERROR_HANDLER	;NOT VALID HEXIDECIMAL VALUE
+	jnc	error_handler	;NOT VALID HEXIDECIMAL VALUE
 	add	L
 	mov	L,A	;movE IT IN
 	inx	D	;BUMP THE POINTER
@@ -257,19 +230,19 @@ HEX_STR_TO_HL: \
 ; if IT WAS PRESENT, THEN HL=THAT VALUE in HEX.
 ;
 GET_OPT_HEX_ARG: \
-	call	FIND_NEXT_ARG	;SEE if FIELD IS PRESENT
+	call	find_next_arg	;SEE if FIELD IS PRESENT
 	rz		;RETURN LEAVING HL AS THEY WERE ON ENTRY
-	call	HEX_STR_TO_HL	;FIELD IS THERE, GO GET IT
+	call	hex_str_to_hl	;FIELD IS THERE, GO GET IT
 	ret		;HL= EITHER OPTIONAL FIELD (HEX), OR AS IT WAS
 	
 ; ---Error Handler Subroutine ---
 ; Both of these labels are for handling a command syntax error.
 ; 
-; ERROR_HANDLER_DE - de contains pointer to the syntax error
-; ERROR_HANDLER_HL - hl contains pointer to the syntax error
+; error_handler_DE - de contains pointer to the syntax error
+; error_handler_HL - hl contains pointer to the syntax error
 ;
 ; -------------------------------
-ERROR_HANDLER:	\
+error_handler:	\
 	call	write_crlf
 	mvi	B,'?'	;set UP THE ????
 	call	SOUT	;INDICATE INPUT NOT VALID
@@ -287,5 +260,5 @@ ERROR_HANDLER:	\
 	if STRINGS=TRUE
 	include help.asm
 	endif
-	ENdsECTION COMMAND
+	endsection COMMAND
 

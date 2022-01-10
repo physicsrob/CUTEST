@@ -53,7 +53,7 @@ ITAB:	equ $
 
 
 ; --- read_line ---
-; This rouTINE reads a line from the current pseudoport.
+; This routine reads a line from the current pseudoport.
 ;
 ;  C/R   TERMINATES THE SEQUENCE ERASING ALL CHARS TO THE
 ;        RIGHT OF THE CURSOR
@@ -82,7 +82,7 @@ read_loop:	\
 	call	to_upper
 	endif
 	ani	7FH	;MAKE SURE NO X'80' BIT DURING CMND MODE
-	jz	STRTD	;if EITHER MODE (OR CTL-@)
+	jz	startup_d	;if EITHER MODE (OR CTL-@)
 	mov	B,A
 	cpi	CR	;IS IT CR?
 	jz finish_line
@@ -157,26 +157,20 @@ write_crlf:	mvi	B,LF	;LINE FEED
 	xra	A	;HERE IS THE NULL
 	call	write_a	;OUTPUT IT
 	jmp	-	;LOOP FOR NUMBER OF NULLS
-;
-;    OUTPUT HL AS HEX 16 BIT VALUE
-;
+
+; --- Write Hex Byte Pair ---
+; This routine writes the contents of HL in hex to the
+; current pseudoport.
+; ---------------------------
 write_hex_pair:	\
 	mov	A,H	;H FIRST
 	call	write_hex
 	mov	A,L	;THEN L FOLLOWED BY A SPACE
-;
-HBOUT:	call	write_hex
-	call	SINP	;SEE if WE SHD ESCAPE FM DUMP
-	jz	BOUT	;NO--add THE SPACE THEN
-	ani	7FH	;MAKE SURE ITS CLEAR OF PARITY
-	jz	COMND	;EITHER MODE (OR CTL-@)
-	cpi	' '	;IS IT SPACE
-	jnz	BOUT	;NO--IGNORE THE CHAR
-WTLP1:	call	SINP	;ON SPACE, WAIT FOR ANY OTHER CHAR
-	jz	WTLP1	;JUST LOOP AFTER A SPACE UNTIL ANY KEY PRESSED
-BOUT:	mvi	B,' '
-	jmp	SOUT	;PUT IT OUT
-;
+
+; --- Write Hex Byte ---
+; This routine writes the contents of A in hex to the
+; current pseudoport.
+; ---------------------------
 write_hex:	mov	C,A	;GET THE CHARACTER
 	rrc
 	rrc		;MOVE THE HIGH FOUR DOWN
@@ -189,6 +183,12 @@ write_hex:	mov	C,A	;GET THE CHARACTER
 	cpi	58	;0-9?
 	jc	write_a;YUP!
 	adi	7	;MAKE IT A LETTER
+	; Drops through to write_a
+
+; --- Write A ---
+; Thie routine is just like SOUT, but the character
+; to be written comes from A instead of B.
+; ----------------
 write_a: \
 	mov	B,A	;OUTPUT IT FROM REGISTER 'B'
 	jmp	SOUT

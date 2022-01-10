@@ -28,7 +28,7 @@
 ;             HL - HAS USER SUPPLIED HEADER FOR TAPE FILE
 ;
 ;
-;   NOrmAL RETURN:   ALL REGISTERS ARE ALTERED
+;   NORMAL RETURN:   ALL REGISTERS ARE ALTERED
 ;                    BLOCK IS READY FOR ACCESS
 ;
 ;   ERROR RETURN:    CARRY BIT IS set
@@ -163,7 +163,7 @@ LFCB1:	equ	$	;HL PT TO PROPER FCB
 ;    READ TAPE BYTE ROUTINE
 ;
 ;    ENTRY:       -  A -  HAS FILE NUMBER
-;    EXIT: NOrmAL -  A -  HAS BYTE
+;    EXIT: NORMAL -  A -  HAS BYTE
 ;          ERROR
 ;            CARRY set     - if FILE NOT OPEN OR
 ;                            PREVIOUS OPERATIONS WERE WRITE
