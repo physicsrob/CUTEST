@@ -22,4 +22,9 @@ HELP_STR: \
 	get_help_entry 13
 	get_help_entry 14
 	get_help_entry 15
+	db "?   Help"
+	db LF
+	db "SET ? Set Help"
+	db LF
 	db	0	;END OF STRING
+

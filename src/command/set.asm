@@ -11,7 +11,14 @@
 	PUBLIC CSET
 CSET:	call	find_next_arg	;SCAN TO SECONDARY COMMAND
 	jz	error_handler	;MUST HAVE AT LEAST SOMETHING!!
-	push	D	;SAVE SCAN ADDRESS
+	
+	if STRINGS = TRUE ; Process help question mark
+	ldax	D
+	cpi	'?'
+	jz	SETHELP
+	endif
+
++:	push	D	;SAVE SCAN ADDRESS
 	call	get_hex_arg	;CONVERT FOLLOWING VALUE
 	xthl		;HL=SAVED SCAN addr AND STACK=VALUE
 	lxi	D,SETTAB	;SECONDARY COMMAND TABLE
@@ -100,3 +107,34 @@ SETTAB:	\
 	dw	SETCR
 	db	0	;END OF TABLE MARK
 
+	ifdef STRINGS
+SETHELP_MSG:
+	db	LF
+	db	'SET <key> = <value>'
+	db	LF
+	db	'TA   Tape speed'
+	db	LF
+	db	'S    Display speed'
+	db	LF
+	db	'I    Input pseudoport'
+	db	LF
+	db	'O    Output psuedoport'
+	db	LF
+	db	'CI   Custom input driver address'
+	db	LF
+	db	'CO   Custom output driver address'
+	db	LF
+	db	'XE   File header XEQ address'
+	db	LF
+	db	'TY   Header type'
+	db	LF
+	db	'N    Number of nulls following CRLF'
+	db	LF
+	db	'CR   CRC (Normal or Ignore CRC errors)'
+	db	LF
+	db 	0
+	endif
+
+SETHELP:
+	lxi	H, SETHELP_MSG
+	jmp	write_line

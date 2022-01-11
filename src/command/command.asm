@@ -43,7 +43,7 @@ process_command:	\
 
 ;
 ; THIS ROUTINE DISPTACHES TO THE addr AT CONTENTS OF HL.
-; Assumed that previous HL was pushed to the stack, and
+; Assumes that previous HL was pushed to the stack, and
 ; we restore the previous value before calling the routine.
 ;
 DISP0:	equ	$	;HERE TO EITHER DISPATCH OR DO ERROR
@@ -93,7 +93,7 @@ find_cmd:	\
 ;
 	pop	H	;RETURN HL TO PT TO CHAR START
 	ora	A	;FORCE TO NON-ZERO FLAG
-	ret		;LET callER KNOW
+	ret		;LET CALLER KNOW
 ;
 ;
 +:	inx	D	;GO TO NEXT ENTRY
