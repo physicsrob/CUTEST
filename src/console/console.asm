@@ -86,7 +86,7 @@ read_loop:	\
 	mov	B,A
 	cpi	CR	;IS IT CR?
 	jz finish_line
-+:	cpi	LF	;IS IT A LINEFEED
+	cpi	LF	;IS IT A LINEFEED
 	jz	finish_line	;YES--TERMINATE LINE AS IS
 	lhld	INPTR	;CRNT LINE PTR
 	cpi	7FH	;DELETE CHR?
@@ -134,7 +134,7 @@ to_upper: \
 write_line:
 	mov	A, M
 	ora	A
-	rz	; Null -- RETURN
+	rz	; NULL -- RETURN
 	cpi	LF
 	jnz	+
 	call	write_crlf

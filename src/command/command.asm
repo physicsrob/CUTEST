@@ -217,7 +217,7 @@ hex_str_to_hl: \
 	inx	D	;BUMP THE POINTER
 	jmp	-
 ;
-+:	SUI	48	;REmovE ASCII BIAS
++:	SUI	48	;REMOVE ASCII BIAS
 	cpi	10
 	RC		;if LESS THAN 9
 	SUI	7	;IT'S A LETTER??
