@@ -15,7 +15,7 @@ TBL:	db	CLEAR	;SCREEN
 	db	LEFT	;"
 	dw	PLEFT
 	db	RIGHT	;"
-	dw	PRIARETT
+	dw	PRIT
 	db	HOME	;"
 	dw	PHOME
 	db	CR	;CARRIAGE RETURN

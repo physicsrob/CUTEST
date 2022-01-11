@@ -1,0 +1,5 @@
+Case-insensitive characters
+Banner
+Help
+Easy to configure pseudoports
+Easy to configure command table
