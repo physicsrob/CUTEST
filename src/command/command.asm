@@ -259,6 +259,7 @@ error_handler:	\
 	include custom.asm
 	if STRINGS=TRUE
 	include help.asm
+	include inout.asm
 	endif
 	endsection COMMAND
 
