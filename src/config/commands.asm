@@ -1,4 +1,4 @@
-	add_command 0, 'DU', DUMP, '<addr1> <addr2> - Dump memory data addr1 to addr2'
+	add_command 0, 'DU', DUMP, ''; <addr1> <addr2> - Dump memory data addr1 to addr2'
 	add_command 1, 'EN', ENTER, '<addr> - Enter data into memory at addr'
 	add_command 2, 'EX', EXEC, '<addr> - Begin program execution at addr'
 	add_command 3, 'GE', TLOAD, '(name(/unit) (addr)) - Get a tape file into memory'
@@ -9,4 +9,4 @@
 	add_command 8, 'CU', CUSET, 'Custom command'
 	add_command 9, 'IN', IN, '<port> - Read from port'
 	add_command 10, 'OU', OUT, '<port> <value> - Write to port'
-	
+	add_command 11, 'HI', inhex, 'Input intel hex'	

@@ -3,3 +3,6 @@ Banner
 Help
 Easy to configure pseudoports
 Easy to configure command table
+intel hex loader
+in/out commands
+

@@ -204,25 +204,74 @@ hex_str_to_hl: \
 	cpi	':'
 	rz
 
+
 	; dad H adds HL to HL, thus shifting left one bit	
 	; We shift left four bits.
 	dad	H
 	dad	H
 	dad	H
 	dad	H
-	call	+	;DO THE CONVERSION
+	call hex_char_to_value
 	jnc	error_handler	;NOT VALID HEXIDECIMAL VALUE
 	add	L
-	mov	L,A	;movE IT IN
+	mov	L,A	;MOVE IT IN
 	inx	D	;BUMP THE POINTER
 	jmp	-
-;
-+:	SUI	48	;REMOVE ASCII BIAS
-	cpi	10
-	RC		;if LESS THAN 9
-	SUI	7	;IT'S A LETTER??
+
+; ---- hex_chars_to_byte ----
+; Convert a pair of chars in hex to a byte
+; Arguments:
+;	DE - pointer to bytes
+; Returns:
+;	A - hex value
+;	No carry indicates error
+;	DE incremented by two
+; Mutates: A, B, C, DE
+; ---------------------------
+hex_chars_to_byte: \
+	; Convert A hex -> value
+	xchg
+	mov a, m
+	inx h
+	mov b, m	
+	inx h
+	xchg
+	call hex_char_to_value
+	rnc
+
+	; Shift value of A to the highest 4 bits
+	rlc
+	rlc
+	rlc
+	rlc
+	
+	; Store the top 4-bits in c
+	mov c, a
+
+	; Convert the next char to the lowest 4-bits
+	mov a, b
+	call hex_char_to_value
+	rnc
+
+	; Add back the highest 4 bits
+	add c
+	ret
+
+; ---- hex_char_to_value ----
+; Convert a signle char in hex to a value
+; Arguments:
+;	A - char
+; Returns:
+;	A - value
+;	No carry indicates error
+; ---------------------------
+hex_char_to_value: \
+	sui	'0'
+	cpi	10		; If less than 10, return
+	rc
+	sui	'A'-'9'-1	; 7 chars between 9 and A 
 	cpi	10H
-	ret		;WITH TEST in HAND
+	ret	
 ;
 ; GET_OPT_HEX_ARG
 ; THIS ROUTINE WILL SEE if A FIELD (OPERAND) IS PRESENT.
@@ -260,6 +309,7 @@ error_handler:	\
 	if STRINGS=TRUE
 	include help.asm
 	include inout.asm
+	include ihex.asm
 	endif
 	endsection COMMAND
 

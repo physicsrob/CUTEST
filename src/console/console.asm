@@ -170,6 +170,7 @@ write_hex_pair:	\
 ; --- Write Hex Byte ---
 ; This routine writes the contents of A in hex to the
 ; current pseudoport.
+; Mutates: A, B, C, PSW
 ; ---------------------------
 write_hex:	mov	C,A	;GET THE CHARACTER
 	rrc

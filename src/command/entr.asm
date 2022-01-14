@@ -14,7 +14,7 @@ ENTER:	call	get_hex_arg	;SCAN OVER CHARS AND GET ADDRESS
 ;
 ENLOP:	call	write_crlf
 	mvi	B,':'
-	call	SOUT	;dsPLY THE COLON
+	call	SOUT	;DSPLY THE COLON
 	call	read_line	;INIT AND PROCESS A LINE
 ;
 ;

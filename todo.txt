@@ -1,4 +1,13 @@
-Case insensitive mode
-Intel hex loader
-In/Out commands
+Finish ihex loader
+See what can fit in 2K
+Get rid of custom command
+Make everything custom / get rid of add_command macro in favor of function
+	each command has a header
+	name    ds 5 ; Only first two bytes are checked
+	ptr     ds 2
+	help	ds 1 ; Variable length help text, null terminated (0 for no help)
+move dispatch, write_*, hex_* to utils
+
+
+
 
