@@ -1,7 +1,5 @@
        PUBLIC inhex
 
-inhex_port: db 0
-inhex_sum: db 0
 finish_msg: \
        db LF
        db 'DONE'

@@ -64,19 +64,34 @@ startup_d:	equ	$	;1ST TIME INITIALIZATION ALL DONE NOW
 	setup_3
 	endif
 
-	if STRINGS = TRUE
-	ifdef BANNER
-display_banner: \
-	jmp +
-BANNER_STR: \
-	db BANNER
-	db 0
-+:	lxi	H, BANNER_STR
-	call	write_line
-	endif
-	endif
+; 	if STRINGS = TRUE
+; 	ifdef BANNER
+; display_banner: \
+; 	jmp +
+; BANNER_STR: \
+; 	db BANNER
+; 	db 0
+; +:	lxi	H, BANNER_STR
+; 	call	write_line
+; 	endif
+; 	endif
 
 COMN1:	equ	$	;HERE TO TURN OFF TAPES, THEN COMMAND MODE
 	xra	A
 	OUT	TAPPT	;BE SURE TAPES ARE OFF
 
+
+	;
+	; Setup command table
+	;
+	; TODO make a memset util
+	; Reset command tab to zeros
+	lxi H, COMMAND_TAB
+	lxi D, COMMAND_TAB_LEN
+	mvi B, 0
+	call memset
+	
+	lxi H, DUMP_CMD
+	call register_command
+	lxi H, ENTER_CMD
+	call register_command

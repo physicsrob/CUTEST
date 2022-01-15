@@ -9,16 +9,16 @@ $$loop		call addr
 add_PSEUDOPORT	macro	i, \
 				VDM, \
 				DATAPORT, \
-				staTUSPORT, \
+				STATUSPORT, \
 				READMASK, \
 				READiNVERT, \
 				WRITEMASK, \
 				RESETMASK, \
-				setupMASK \
+				SETUPMASK \
 		
 
 in_i:		equ $
-		in staTUSPORT
+		in STATUSPORT
 		if strlen("READiNVERT")>0
 		   CMA
 		endif
@@ -32,7 +32,7 @@ USEVDM:	   equ TRUE
 out_i:		   equ VDM01
 		ELSE
 out_i:		   equ $
-$$loop		   in staTUSPORT
+$$loop		   in STATUSPORT
 		   ani WRITEMASK
 		   jz $$loop
 		   mov A,B
@@ -43,36 +43,13 @@ $$loop		   in staTUSPORT
 setup_i	macro
 		   if strlen("RESETMASK")>0
 			mvi	A, RESETMASK 
-			OUT	staTUSPORT	
+			OUT	STATUSPORT	
 		   endif
-		   if strlen("setupMASK")>0
-			mvi	A, setupMASK 
-			OUT	staTUSPORT	
+		   if strlen("SETUPMASK")>0
+			mvi	A, SETUPMASK 
+			OUT	STATUSPORT	
 		   endif
 		endm
 
 		endm
 	
-
-add_command	macro i, NAME, PTR, HLP
-CMDNAME_i	set NAME
-CMDPTR_i	set PTR
-CMDHELP_i	set HLP
-		endm	
-
-
-get_comtab_entry	macro i
-			ifdef CMDNAME_i
-			db	CMDNAME_i
-			dw	CMDPTR_i
-			endif
-			endm
-
-get_help_entry	macro i
-			ifdef CMDHELP_i
-			db CMDNAME_i
-			db '   '
-			db CMDHELP_i
-			db LF
-			endif
-			endm

@@ -67,20 +67,14 @@ read_line:	\
 	mvi	M,7	;MAKE SURE IT IS "BELL" TO KEEP FM DEL'ING TOO FAR
 	inx	H	;NOW PT TO INPUT BFR
 	shld	INPTR	;SAVE AS STARTING PTR
-	mvi	A,80	;NUMBER OF CHARS in LINE (MAX)
 
-; set the buffer to a string of blanks (' ')
-.reset_loop:	\
-	mvi	M,' '	;BLANKS
-	inx	H	;NEXT CHAR
-	dcr	A	;FOR THIS COUNT
-	jnz	.reset_loop	;ENTIRE LINE
+	lxi D, 80 ; Numer of chars to rset to space
+	mvi B, ' '
+	call memset
 
 read_loop:	\
 	call_until_nz	SINP	; READ INPUT DEVICE
-	if STRINGS = TRUE
 	call	to_upper
-	endif
 	ani	7FH	;MAKE SURE NO X'80' BIT DURING CMND MODE
 	jz	startup_d	;if EITHER MODE (OR CTL-@)
 	mov	B,A
@@ -92,7 +86,7 @@ read_loop:	\
 	cpi	7FH	;DELETE CHR?
 	jnz	+	;NO--OK
 	mvi	B,BACKS	;REPLACE IT
-	DCX	H	;BACK LINE PTR UP TOO
+	dcx	H	;BACK LINE PTR UP TOO
 	mvi	A,'G'-40H	;SEE if A BELL
 	cmp	M	;IS IT?
 	jnz	++	;NO--OK
@@ -116,7 +110,6 @@ finish_line:	\
 ; --- To Upper Subroutine ---
 ; Makes character in A register upper case
 ; ---------------------------
-	if STRINGS = TRUE
 to_upper: \
 	cpi	'a'
 	rc		; Carry indicates A is less than 'a'
@@ -124,7 +117,6 @@ to_upper: \
 	rnc		; No carry means that A is less than or equal to z
 	xri	20h	; Remove lower case bit
 	ret
-	endif
 	
 ; --- Write Line Subroutine ---
 ; Prints a line to the current pseudoport

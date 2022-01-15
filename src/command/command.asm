@@ -1,5 +1,6 @@
 	section COMMAND
-	public	COMND, DISPT
+	public	COMND, DISPT, register_command
+pre    set $
 
 ; ------------------------------------------------------ 
 ;
@@ -24,32 +25,29 @@ process_command:	\
 	push	H			;PLACE PTR TO CUTER ON STACK FOR LATER DISPT
 	call	find_non_blank	;SCAN PAST BLANKS
 	jz	error_handler		;NO COMMAND?
-	xchg				;HL HAS FIRST CHR
+	push d ; Store the pointer to the cmd
 	
-	if STRINGS = TRUE ; Process help question mark
-	ldax	H
-	cpi	'?'
-	jnz	+
-	lxi	H, HELP
-	xthl
-	ret
-	endif
-
-+:	lxi	D,CMDTAB	;POINT TO COMMAND TABLE
-	call	find_cmd	;SEE if in PRIMARY TABLE
-	CZ	find_custom_cmd	;TRY CUSTOM ONLY if NOT PRIMARY COMMAND
-; **** DROP THRU TO DISP0 ***
+	; if STRINGS = TRUE ; Process help question mark
+	; ldax	H
+	; cpi	'?'
+	; jnz	+
+	; lxi	H, HELP
+	; xthl
+	; ret
+	; endif
 
 
-;
-; THIS ROUTINE DISPTACHES TO THE addr AT CONTENTS OF HL.
-; Assumes that previous HL was pushed to the stack, and
-; we restore the previous value before calling the routine.
-;
-DISP0:	equ	$	;HERE TO EITHER DISPATCH OR DO ERROR
-	jz	error_handler		;NOT in EITHER TABLE
-	inx	D	;PT DE TO addr OF RTN
-	xchg		;HL=addr OF addr OF RTN
++:	call find_command
+	jz error_handler ; Command not found
+	pop d
+	; HL points to command pointer
+	jmp DISPT
+
+; --- DISPT ---
+; Dispatches to address stored in memory, pointed to by HL
+; Desired contents of HL must be top of the stack
+; DE not affected
+; -------------
 DISPT:	equ	$	;DISPATCH
 	mov	A,M	;LOW BYTE
 	inx	H
@@ -65,65 +63,146 @@ DISPT:	equ	$	;DISPATCH
 	; pushed to the stack before calling dispatch
 	ret		;OFF TO ROUTINE
 
+
 ; --- Find Command Subroutine ---
-;
-;   This routine searches through a table, pointed to
-;  by DE, for a double character match of the string
-;  point to by HL. if no match is found the scan ends
-;  with the zero flag set, else non-zero set.
-;
-;  find_custom_cmd -- Search through CUSTOM_COMMAND_TAB
-;  find_cmd -- Search through table loaded in DE
+; Arguments:
+;    DE - pointer to command string
 ; -------------------------------
-find_custom_cmd:	\
-	lxi	D,CUSTOM_COMMAND_TAB	
-find_cmd:	\
-	ldax	D	; Load
-	ora	A	;TEST FOR TABLE END
-	rz		;NOT FOUND POST THAT AND RETURN
-	push	H	;SAVE START OF SCAN ADDRESS
-	cmp	M	;TEST FIRST CHR
-	inx	D
-	jnz	+	
-;
-	inx	H
-	ldax	D
-	cmp	M	;NOW SECOND CHARACTER
-	jnz	+	;GOODNESS
-;
-	pop	H	;RETURN HL TO PT TO CHAR START
-	ora	A	;FORCE TO NON-ZERO FLAG
-	ret		;LET CALLER KNOW
-;
-;
-+:	inx	D	;GO TO NEXT ENTRY
-	inx	D
-	inx	D
-	pop	H	;GET BACK ORIGINAL ADDRESS
-	jmp	find_cmd	;CONTINUE SEARCH
+find_command:
+	; Load command string into registers	
+	ldax d
+	mov b, a 
+	inx d
+	ldax d
+	mov e, a
+	mov d, b
+	; d now contains the first char
+	; e now contains the second char
+	
+	lxi h, COMMAND_TAB
+.loop:
+	; Get command string
+	call get_command_str
+	jnz +
+	; end of table
+	; could not find command
+	xra a
+	ret
++:	
+	; Compare first char
+	mov a, b
+	cmp d
+	jnz .not_match
+
+	; Compare second char
+	mov a, c
+	cmp e
+	
+	jnz .not_match
+
+	; Match!
+	; HL is pointing at command tab
+	; Point it at the command record
+	call get_command_record
+	; HL is now pointing to command record
+	; Add 5 to skip the name
+
+	mvi B, 0
+	mvi C, 5
+	dad b 
+	
+	; HL should now be pointing to the command pointer
+	mvi a, 1
+	cpi 2
+	ret
+	
+.not_match:
+	inx h
+	inx h
+	jmp .loop
 
 
-; COMMAND TABLE
+; --- get_command_record ---
+; Arguments:
+;    HL - points to command record pointer
+; Returns:
+;    HL - points to command record
+; Mutates: A
+; -----------------------
+get_command_record:
+	mov	a, m ; low byte
+	inx	h
+	mov	h, m ; high byte
+	mov	l, a ; AND LO, HL NOW COMPLETE
+	ret
+
+; --- get_command_str ---
+; Arguments:
+;    HL -- address of pointer to command record
+; Returns:
+;    B -- first char of command
+;    C -- second char of command
+;    Non zero if valid command pointer
+;    Zero is null command pointer
+; Mutates: A, B, C
+; -----------------------
+get_command_str:
+	push h
+	mov a, m ; low byte
+	inx h
+	mov h, m ; hight byte
+	mov l, a ; AND LO, HL NOW COMPLETE
+	xra a
+	ora h
+	jnz +
+	ora l
+	jnz +
+	
+	pop h
+	ret ; Return zero
+
++:	mov b, m
+	inx h
+	mov c, m
+	
+	pop h
+	ret ; Return nonzero
+
+
+; --- register_command ---
+; Registers a command.
+; Command record must be pointed to by HL
+; Command record format:
+;    Name - 5 bytes, padded by spaces
+;    Entry Point - 2 bytes
+;    Help Strings - Any length null terminated
+; ------------------------
+register_command:
+	lxi d, COMMAND_TAB
+.loop:
+	ldax d	; Load first byte of table
+	inx d
+	ora a
+	jnz +
+	ldax d	; Load second byte of table
+	ora a	
++:
+	inx d
+	jnz .loop
+.done:
+	; Last two bytes of table were both null
+	dcx d
+	dcx d
+	; Move command ptr into table
+	xchg
+	; HL now points to empty table spot
+	; DE now points to command record
+	mov m, e
+	inx h
+	mov m, d
+	ret
+
 ; To modify the command table entry's, edit config/commands.asm
-CMDTAB: \
-	get_comtab_entry 0
-	get_comtab_entry 1
-	get_comtab_entry 2
-	get_comtab_entry 3
-	get_comtab_entry 4
-	get_comtab_entry 5
-	get_comtab_entry 6
-	get_comtab_entry 7
-	get_comtab_entry 8
-	get_comtab_entry 9
-	get_comtab_entry 10
-	get_comtab_entry 11
-	get_comtab_entry 12
-	get_comtab_entry 13
-	get_comtab_entry 14
-	get_comtab_entry 15
-	db	0
-
 ; --- write_prompt ---
 ; output a crlf followed by a prompt
 ; --------------------
@@ -153,7 +232,7 @@ find_next_arg:	\
 	cpi	BLANK
 	jz	find_non_blank	;GOT A BLANK NOW SCAN PAST IT
 	inx	D
-	cpi	'='	;A equAL WILL ALSO STOP US (AT NEXT CHAR)
+	cpi	'='	;A EQUAL WILL ALSO STOP US (AT NEXT CHAR)
 	jz	find_non_blank	;FOUND, DE PT TO NEXT CHAR
 	dcr	C	;NO MORE THAN TWELVE
 	jnz	-
@@ -300,16 +379,28 @@ error_handler:	\
 
 
 
+	MESSAGE "(CMD)  prev \{$ - pre}"
+pre    set $
 	include dump.asm
+	MESSAGE "     prev \{$ - pre}"
+pre    set $
 	include entr.asm
+	MESSAGE "     prev \{$ - pre}"
+pre    set $
 	include exec.asm
+	MESSAGE "     prev \{$ - pre}"
+pre    set $
 	include cassette.asm
+	MESSAGE "     prev \{$ - pre}"
+pre    set $
 	include set.asm
-	include custom.asm
-	if STRINGS=TRUE
-	include help.asm
-	include inout.asm
-	include ihex.asm
-	endif
+	MESSAGE "     prev \{$ - pre}"
+pre    set $
+	;include custom.asm
+	; if STRINGS=TRUE
+	; include help.asm
+	; include inout.asm
+	; include ihex.asm
+	; endif
 	endsection COMMAND
 

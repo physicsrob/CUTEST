@@ -62,7 +62,7 @@ TSAVE:	equ	$	;SAVE MEMORY IMAGE TO TAPE
 	sub	L
 	mov	L,A
 	mov	A,D
-	sbi	0	;THIS equALS A "SBB H"
+	sbi	0	;THIS EQUALS A "SBB H"
 	sub	H	;THIS IS NEEDED
 	mov	H,A
 	inx	H

@@ -11,3 +11,4 @@ move dispatch, write_*, hex_* to utils
 
 
 
+fix in/out memory ram/rom issue
