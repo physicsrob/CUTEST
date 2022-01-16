@@ -188,3 +188,41 @@ read_ihex_line:
        jnz	-
 	ret
 
+; ---- hex_chars_to_byte ----
+; Convert a pair of chars in hex to a byte
+; Arguments:
+;	DE - pointer to bytes
+; Returns:
+;	A - hex value
+;	No carry indicates error
+;	DE incremented by two
+; Mutates: A, B, C, DE
+; ---------------------------
+hex_chars_to_byte: \
+	; Convert A hex -> value
+	xchg
+	mov a, m
+	inx h
+	mov b, m	
+	inx h
+	xchg
+	call hex_char_to_value
+	rnc
+
+	; Shift value of A to the highest 4 bits
+	rlc
+	rlc
+	rlc
+	rlc
+	
+	; Store the top 4-bits in c
+	mov c, a
+
+	; Convert the next char to the lowest 4-bits
+	mov a, b
+	call hex_char_to_value
+	rnc
+
+	; Add back the highest 4 bits
+	add c
+	ret
