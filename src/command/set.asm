@@ -8,147 +8,164 @@
 ;   DISPATCHES TO THE PROPER ROUTINE FOR setTING
 ;   MEMORY VALUES.
 ;
-	PUBLIC CSET
+	PUBLIC CSET, SET_CMD
+SET_CMD:
+	db 'SET  '
+	dw CSET
+
 CSET:	call	find_next_arg	;SCAN TO SECONDARY COMMAND
 	jz	error_handler	;MUST HAVE AT LEAST SOMETHING!!
 	
-	; Check for question mark
-	ldax	D
-	cpi	'?'
-	jnz +
-	;
-	; Set help triggered
-	;
-	; Load command pointer
-	lxi d, SETHELP_CMD
++:	push	D ; Store address to key
+	call	get_hex_arg ; Convert the set value
+	; Set value is now stored into HL
+	xthl
+	; HL = Key address, Stack = Set value
+	
+	; Load key characters into B, C
+	mov b, m
+	inx h
+	mov c, m
+
+	lxi D, SET_TAB
+	; Loop through table looking for match
+
+.loop:	
+	; Compare first char
+	ldax d
+	inx d
+	cmp b
+	jnz .not_match
+	
+	; Compare second char
+	ldax d
+	cmp c
+	jnz .not_match
+
+	; Match!
+	inx d ; Skip past the 2nd char
+	
+	; Setup for setter call
+	; We'll make it:
+	;    top of stack: setter address
+	;    HL - destination address 
+	;    BC - value to set
+	; and then return to dispatch there
+
+	; Pop the stack (set value) into b
+	pop b
+
+	; Load setter address
 	ldax d
 	mov l, a
+	inx d
 	ldax d
 	mov h, a
-	; Check if it's null
-	ora l
-	jz error_handler ; No help command loaded
-	pchl ; Jump to it
+	inx d
+	
+	push h ; Put setter address on stack
+	
+	; Load destination address
+	ldax d
+	mov l, a
+	inx d
+	ldax d
+	mov h, a
+	inx d
 
-+:	push	D	;SAVE SCAN ADDRESS
-	call	get_hex_arg	;CONVERT FOLLOWING VALUE
-	xthl		;HL=SAVED SCAN addr AND STACK=VALUE
-	lxi	D,SETTAB	;SECONDARY COMMAND TABLE
-	call	find_cmd	;TRY TO LOCATE IT
-	jz	error_handler ; Not found
-	inx	D	;Point DE to address of address we'll dispatch to
-	xchg
-	; HL now contains address of address to dispatch to
-	; DE now contains address of command line string  
-	jmp DISPT
-;
-;
-;  THIS ROUTINE SETS THE TAPE SPEED
-;
-TASPD:	equ	$	;GET CONVERTED VALUE
-	ora	A	;IS IT ZERO?
-	jz	SETSP	;YES--THAT IS A PROPER SPEED
-	mvi	A,32	;NO--SET SPEED PROPERLY THEN
-SETSP:	sta	TSPD
-	ret
-;
-;
-	PUBLIC STSPD
-STSPD:	equ	$	;VDM ESCAPE SEQUENCE COMES HERE
-	mov	A,B	;GET CHAR FOR FOLLOWING DISPD
-DISPD:	equ	$	;set DISPLAY SPEED
-	sta	SPEED
-	ret
-;
-;
-SETIN:	equ	$	;set AN INPUT PSUEDO PORT
-	sta	IPORT
-	ret
-;
-;
-SETOT:	equ	$	;set AN OUTPUT PSUEDO PORT
-	sta	OPORT
-	ret
-;
-;
-SETCI:	equ	$	;DEFINE USER INPUT RTN addr
-	shld	USER_INP_PTR
-	ret
-;
-;
-SETCO:	equ	$	;DEFINE USER OUTPUT RTN addr
-	shld	USER_OUT_PTR
-	ret
-;
-;
-SETTY:	equ	$	;set TAPE HDR TYPE
-	sta	HTYPE
-	ret
-;
-;
-SETXQ:	equ	$	;set TAPE-EXECUTE addDR FOR HDR
-	shld	XEQAD
-	ret
-;
-;
-SETNU:	equ	$	;HERE TO set NUMBER OF NULLS
-	sta	NUCNT	;THIS IS IT
-	ret
-;
-;
-SETCR:	equ	$	;set CRC TO BE NORMAL, OR IGNORE CRC ERRORS
-	sta	IGNCR	;FF=IGNORE CRC ERRORS, ELSE=NORMAL
-	ret
+	ret ; Dispatch to setter
 
-; SECONDARY COMMAND TABLE FOR SET COMMAND
-SETTAB:	\
-	db	'TA'	;set TAPE SPEED
-	dw	TASPD
-	db	'S='	;set DISPLAY SPEED
-	dw	DISPD
-	db	'I='	;set INPUT PORT
-	dw	SETIN
-	db	'O='	;set OUTPUT PORT
-	dw	SETOT
-	db	'CI'	;set CUSTOM DRIVER ADDRESS
-	dw	SETCI
-	db	'CO'	;set CUSTOM OUTPUT DRIVER ADDRESS
-	dw	SETCO
-	db	'XE'	;set HEADER XEQ ADDRESS
-	dw	SETXQ
-	db	'TY'	;set HEADER TYPE
-	dw	SETTY
-	db	'N='	;set NUMBER OF NULLS
-	dw	SETNU
-	db	'CR'	;set CRC (NORMAL OR IGNORE CRC ERRORS)
-	dw	SETCR
+
+.not_match:
+	; Increment D by 5 (we already incremented 1)
+	inx d
+	inx d
+	inx d
+	inx d
+	inx d
+	
+	; Check for end of table
+	ldax d
+	ora a ; set flags
+	jz error_handler ; command not found
+	
+	; Not end of table -- keep going
+	jmp .loop
+	
+
+
+
+SET_TAB:	\
+	db 'TA' ; set tape speed 
+	dw tape_speed_setter
+	dw TSPD
+
+	db 'S=' ; set VDM speed
+	dw byte_setter
+	dw SPEED
+
+	db 'I=' ; set input port
+	dw byte_setter
+	dw IPORT
+
+	db 'O=' ; set output port 
+	dw byte_setter
+	dw OPORT
+
+	db 'XE' ; set header XEQ address
+	dw word_setter
+	dw XEQAD
+
+	db 'TY' ; set header type
+	dw byte_setter
+	dw HTYPE
+
+	db 'N=' ; set number of nulls
+	dw byte_setter
+	dw NUCNT
+	
+	db 'CR' ; set CRC check 
+	dw byte_setter
+	dw IGNCR 
+
 	db	0	;END OF TABLE MARK
 
-
-find_cmd:	\
-	ldax	D	; Load first byte of table
-	ora	A	;TEST FOR TABLE END
-	rz		;NOT FOUND POST THAT AND RETURN
-	push	H	;SAVE START OF SCAN ADDRESS
-	cmp	M	;TEST FIRST CHR
-	inx	D	; Does not affect status flags
-	jnz	+	; Jump to + if we don't match
-;
-	inx	H
-	ldax	D
-	cmp	M	; Compare second char
-	jnz	+	; Jump to + if we don't match
+; --- word_setter ---
+; Called by set dispatch.
+; Arguments:
+;    HL - address of variable to change
+;    BC - value to set
+; -------------------	
+word_setter:
+	mov m, c
+	inx h
+	mov m, b
+	ret
 	
-	; We found it!
-	pop	H	;RETURN HL TO PT TO CHAR START
-	ora	A	;FORCE TO NON-ZERO FLAG
-	; HL now points to initial value
-	; DE now points to second char of name  
-	ret		;LET CALLER KNOW
-;
-;
-+:	inx	D	;GO TO NEXT ENTRY
-	inx	D
-	inx	D
-	pop	H	;GET BACK oriGINAL ADDRESS
-	jmp	find_cmd	;CONTINUE SEARCH
+; --- byte_setter ---
+; Called by set dispatch.
+; Arguments:
+;    HL - address of variable to change
+;    BC - value to set
+; -------------------	
+byte_setter:
+	mov m, c
+	ret
+
+; --- tape_speed_setter ---
+; Called by set dispatch.
+; Arguments:
+;    HL - address of variable to change
+;    BC - value to set
+; -------------------	
+tape_speed_setter:
+	xra a
+	ora C
+       jz + 
+	; If tape speed is non-zero, store 32
+	mvi m, 32
+	ret
++:
+	; If tape speed is zero, store zero
+	mvi m, 0
+	ret

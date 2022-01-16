@@ -275,7 +275,8 @@ ESCSP:	lda	ESCFL	;GET ESCAPE FLAG
 	jc	SETX	;set X
 	jz	SETY	;set Y
 	cpi	8	;SPECIAL set SPEED
-	jz	STSPD	;YES--set THE SPEED WITH IT THEN
+	mov	A,B
+	sta	SPEED
 	cpi	9
 	jc	OCHAR	;PUT IT ON THE SCREEN
 	rnz

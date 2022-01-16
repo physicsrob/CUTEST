@@ -32,22 +32,15 @@ startup_a:	xra	A
 	lxi	SP,TOP_OF_STACK	;set UP THE STACK FOR call
 	call	ERASE_SCREEN	;(REG A ASSUMED TO COME BACK ZERO)
 	endif
-	
-startup_b:	equ	$	;FINISH OFF THIS PORT THEN DO NEXT
-	lxi	H,0	;USE FOR CLEARING USER ADDRESSES
-	cpi	3	;IS IT A USER PORT
-	jz	startup_c	;YES-- DO NOT CLEAR IT
-	shld	USER_OUT_PTR	;NO--CLEAR addr
-startup_c:	equ	$	;OUTPUT PORT ALL set
+
+startup_b:	
 	mov	A,B	;FM SENSE SWITCHES
 	rar
 	rar		;NEXT 2 BITS ARE INPUT PORT
 	ani	3	;VALID PORT
 	sta	DFLTS	;THIS IS DEFAULT INPUT PORT
 	cpi	3	;IS THIS ONE A USER PORT
-	jz	startup_d	;YES--DO NOT CLEAR IT THEN
-	shld	USER_INP_PTR	;NO--FORCE USER ADDRESS ZERO
-startup_d:	equ	$	;1ST TIME INITIALIZATION ALL DONE NOW
+startup_d:
 	lhld	DFLTS	;PICK UP DEFAULT PORTS
 	shld	IPORT	;FORCE PORTS TO DEFAULT
 	
@@ -94,4 +87,6 @@ COMN1:	equ	$	;HERE TO TURN OFF TAPES, THEN COMMAND MODE
 	lxi H, DUMP_CMD
 	call register_command
 	lxi H, ENTER_CMD
+	call register_command
+	lxi H, SET_CMD
 	call register_command
