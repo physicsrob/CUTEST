@@ -25,7 +25,7 @@ process_command:	\
 	push	H			;PLACE PTR TO CUTER ON STACK FOR LATER DISPT
 	call	find_non_blank	;SCAN PAST BLANKS
 	jz	error_handler		;NO COMMAND?
-	push d ; Store the pointer to the cmd
+	push d ; Store the pointer to the cmd string
 
 +:	call find_command
 	jz error_handler ; Command not found
@@ -71,58 +71,33 @@ find_command:
 	
 	lxi h, COMMAND_TAB
 .loop:
-	; Save h, we use it to keep track
-	; of where in the command table we are.
-	push h
-	mov a, m ; load first byte
-
-	; Check if first byte is null
-	; if it is, that marks the end of the table
-	ora a ; set flags
+	; h points to current position in command_tab
+	mov a, m
+	cmp d
+	inx h
 	jnz +
 
-	; End of the table
-	pop h ; fix the stack
-	ret ; return zero
-+:	
-	inx h
-	mov h, m ; high byte
-	mov l, a ; AND LO, HL NOW COMPLETE
-
-	; Load characters into B, C
-	mov b, m
-	inx h
-	mov c, m
-	
-	pop h
-	
-	; Compare first char
-	mov a, b
-	cmp d
-	jnz .not_match
-
-	; Compare second char
-	mov a, c
+	mov a, m
 	cmp e
 	jnz .not_match
 
 	; Match!
-	; HL is pointing at command tab
-	; Point it at the command record
-	call get_command_record
-	; HL is now pointing to command record
-	; Add 5 to skip the name
-
-	mvi B, 0
-	mvi C, 5
-	dad b 
-	
-	; HL should now be pointing to the command pointer
+	inx h
+	; Force non-zero
 	mvi a, 1
-	cpi 2
+	ora a
+	; hl now points to command pointer
 	ret
+
++:
+	; Not match
+	; Check a to see if it's null (indicating end of table)
+	ora a
+	rz
 	
+	; not a match, not end of table
 .not_match:
+	inx h
 	inx h
 	inx h
 	jmp .loop
@@ -145,35 +120,34 @@ get_command_record:
 
 ; --- register_command ---
 ; Registers a command.
-; Command record must be pointed to by HL
+; Command record must be pointed to by DE
 ; Command record format:
-;    Name - 5 bytes, padded by spaces
+;    Name - 2 bytes, padded by spaces
 ;    Entry Point - 2 bytes
-;    Help Strings - Any length null terminated
 ; ------------------------
 register_command:
-	lxi d, COMMAND_TAB
+	lxi h, COMMAND_TAB
 .loop:
-	ldax d	; Load first byte of table
-	inx d
+	mov a, m
+	inx h
 	ora a
 	jnz +
-	ldax d	; Load second byte of table
-	ora a	
+	ora m
 +:
-	inx d
+	inx h
+	inx h
+	inx h
 	jnz .loop
 	
-	; Last two bytes of table were both null
-	dcx d
-	dcx d
-	; Move command ptr into table
-	xchg
-	; HL now points to empty table spot
-	; DE now points to command record
-	mov m, e
-	inx h
-	mov m, d
+	; Last entry of table was null
+	dcx h
+	dcx h
+	dcx h
+	dcx h
+
+	; Copy record to table
+	mvi b, 4
+	call memcpy
 	ret
 
 ; To modify the command table entry's, edit config/commands.asm

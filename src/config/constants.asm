@@ -56,5 +56,5 @@ TAPE1:	equ	80H	;1=TURN TAPE ONE ON
 TAPE2:	equ	40H	;1=TURN TAPE TWO ON
 
 
-STRINGS:      equ    FALSE
+STRINGS:      equ    False
 BANNER:       equ    'Welcome to CUTEST'
