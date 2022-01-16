@@ -8,11 +8,7 @@
 ;   DISPATCHES TO THE PROPER ROUTINE FOR setTING
 ;   MEMORY VALUES.
 ;
-	PUBLIC set_cmd_record
-set_cmd_record:
-	db 'SE'
-	dw CSET
-
+	PUBLIC CSET
 CSET:	call	find_next_arg	;SCAN TO SECONDARY COMMAND
 	jz	error_handler	;MUST HAVE AT LEAST SOMETHING!!
 	

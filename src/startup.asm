@@ -82,12 +82,4 @@ COMN1:	equ	$	;HERE TO TURN OFF TAPES, THEN COMMAND MODE
 	lxi D, COMMAND_TAB_LEN
 	mvi B, 0
 	call memset
-	
-	lxi d, dump_cmd_record
-	call register_command
-	lxi d, enter_cmd_record
-	call register_command
-	lxi d, set_cmd_record
-	call register_command
-	lxi d, exec_cmd_record
-	call register_command
+	call load_cmd_tab

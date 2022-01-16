@@ -8,11 +8,7 @@
 ; IT CAN DO A STANDARD 'ret'URN TO THE CUTER COMMAND MODE.
 ;
 ;
-	PUBLIC	exec_cmd_record
-
-exec_cmd_record:
-	db 'EX'
-	dw EXEC
+	PUBLIC	EXEC
 
 EXEC:	call	get_hex_arg	;SCAN PAST BLANKS AND GET PARAMETER
 EXEC1:	equ	$	;HERE TO GO TO HL

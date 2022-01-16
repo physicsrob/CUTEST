@@ -1,5 +1,5 @@
 	section COMMAND
-	public	COMND, DISPT, register_command
+	public	COMND, DISPT, register_command, load_cmd_tab
 pre    set $
 
 ; ------------------------------------------------------ 
@@ -289,23 +289,38 @@ error_handler:	\
 
 
 
-	MESSAGE "(CMD)  prev \{$ - pre}"
-pre    set $
 	include dump.asm
-	MESSAGE "     prev \{$ - pre}"
-pre    set $
 	include entr.asm
-	MESSAGE "     prev \{$ - pre}"
-pre    set $
 	include exec.asm
-	MESSAGE "     prev \{$ - pre}"
-pre    set $
 	include cassette.asm
-	MESSAGE "     prev \{$ - pre}"
-pre    set $
 	include set.asm
-	MESSAGE "     prev \{$ - pre}"
-pre    set $
+	
+
+builtin_cmd_tab:
+	db 'DU'
+	dw DUMP
+	db 'EN'
+	dw ENTER
+	db 'SE'
+	dw CSET
+	db 'EX'
+	dw EXEC
+	db 'GE'    ;GET
+	dw TLOAD
+	db 'SA'    ;SAVE
+	dw TSAVE
+	db 'XE'    ;XEQ
+	dw TXEQ
+	db 'CA'    ;CAT
+	dw TLIST
+
+load_cmd_tab:
+	lxi h, COMMAND_TAB
+	lxi d, builtin_cmd_tab
+	mvi b, 8*4
+	call memcpy
+	ret
+
 	;include custom.asm
 	; if STRINGS=TRUE
 	; include help.asm

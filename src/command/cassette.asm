@@ -5,15 +5,6 @@
 ;
 ;
 	PUBLIC TXEQ
-	; DB 'GE'    ;GET
-	; DW TLOAD
-	; DB 'SA'    ;SAVE
-	; DW TSAVE
-	; DB 'XE'    ;XEQ
-	; DW TXEQ
-	; DB 'CA'    ;CAT
-	; DW TLIST
-
 TXEQ:	db	3EH	;THIS BEGINS "mvi" OF THE "xra" FOLLOWING
 	PUBLIC TLOAD
 TLOAD:	xra	A	;A=0 TLOAD, A=AF (#0) THEN XEQ
