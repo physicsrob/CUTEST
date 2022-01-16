@@ -81,14 +81,31 @@ find_command:
 	
 	lxi h, COMMAND_TAB
 .loop:
-	; Get command string
-	call get_command_str
+	; Save h, we use it to keep track
+	; of where in the command table we are.
+	push h
+	mov a, m ; load first byte
+
+	; Check if first byte is null
+	; if it is, that marks the end of the table
+	ora a ; set flags
 	jnz +
-	; end of table
-	; could not find command
-	xra a
-	ret
+
+	; End of the table
+	pop h ; fix the stack
+	ret ; return zero
 +:	
+	inx h
+	mov h, m ; high byte
+	mov l, a ; AND LO, HL NOW COMPLETE
+
+	; Load characters into B, C
+	mov b, m
+	inx h
+	mov c, m
+	
+	pop h
+	
 	; Compare first char
 	mov a, b
 	cmp d
@@ -97,7 +114,6 @@ find_command:
 	; Compare second char
 	mov a, c
 	cmp e
-	
 	jnz .not_match
 
 	; Match!
@@ -136,38 +152,6 @@ get_command_record:
 	mov	l, a ; AND LO, HL NOW COMPLETE
 	ret
 
-; --- get_command_str ---
-; Arguments:
-;    HL -- address of pointer to command record
-; Returns:
-;    B -- first char of command
-;    C -- second char of command
-;    Non zero if valid command pointer
-;    Zero is null command pointer
-; Mutates: A, B, C
-; -----------------------
-get_command_str:
-	push h
-	mov a, m ; low byte
-	inx h
-	mov h, m ; hight byte
-	mov l, a ; AND LO, HL NOW COMPLETE
-	xra a
-	ora h
-	jnz +
-	ora l
-	jnz +
-	
-	pop h
-	ret ; Return zero
-
-+:	mov b, m
-	inx h
-	mov c, m
-	
-	pop h
-	ret ; Return nonzero
-
 
 ; --- register_command ---
 ; Registers a command.
@@ -189,7 +173,7 @@ register_command:
 +:
 	inx d
 	jnz .loop
-.done:
+	
 	; Last two bytes of table were both null
 	dcx d
 	dcx d

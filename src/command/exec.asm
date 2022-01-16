@@ -54,7 +54,7 @@ NFIL:	mvi	M,0	;PUT IN AT LEAST ONE ZERO
 	cpi	'/'	;IS THERE A UNIT SPECIFICATION?
 	mvi	A,1	;PretEND NOT
 	jnz	DEFLT
-	inx	D	;movE PAST THE TERMINATOR
+	inx	D	;MOVE PAST THE TERMINATOR
 	call	find_non_blank	;GO GET IT
 	sui	'0'	;REMOVE ASCII BIAS
 ;
