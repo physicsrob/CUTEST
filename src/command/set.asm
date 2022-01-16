@@ -8,9 +8,9 @@
 ;   DISPATCHES TO THE PROPER ROUTINE FOR setTING
 ;   MEMORY VALUES.
 ;
-	PUBLIC CSET, SET_CMD
-SET_CMD:
-	db 'SET  '
+	PUBLIC set_cmd_record
+set_cmd_record:
+	db 'SE'
 	dw CSET
 
 CSET:	call	find_next_arg	;SCAN TO SECONDARY COMMAND

@@ -73,7 +73,6 @@ COMN1:	equ	$	;HERE TO TURN OFF TAPES, THEN COMMAND MODE
 	xra	A
 	OUT	TAPPT	;BE SURE TAPES ARE OFF
 
-
 	;
 	; Setup command table
 	;
@@ -84,9 +83,11 @@ COMN1:	equ	$	;HERE TO TURN OFF TAPES, THEN COMMAND MODE
 	mvi B, 0
 	call memset
 	
-	lxi H, DUMP_CMD
+	lxi H, dump_cmd_record
 	call register_command
-	lxi H, ENTER_CMD
+	lxi H, enter_cmd_record
 	call register_command
-	lxi H, SET_CMD
+	lxi H, set_cmd_record
+	call register_command
+	lxi H, exec_cmd_record
 	call register_command
