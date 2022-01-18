@@ -62,5 +62,17 @@ COMN1:	equ	$	;HERE TO TURN OFF TAPES, THEN COMMAND MODE
 	lxi D, COMMAND_TAB_LEN
 	mvi B, 0
 	call memset
+	
+	lxi h, builtin_cmd_tab
 	call load_cmd_tab
 
+
+	;
+	; Look for extension, and autoexec it
+	;
+	if AUTOLOAD_EXT = True
+	lxi h, EXT_ADDRESS
+	mvi a, EXTENSION_ID
+	cmp m
+	cz EXT_ADDRESS 
+	endif

@@ -16,8 +16,6 @@ MEM_SIZE      equ 0800H     ; 2k memory
 SENSE_PORT    equ 0FFH      ;SENSE SWITCHES
 
 AUTOLOAD_EXT  equ True
-EXTENSION_ID  equ 1 ; FIXME mov B, B
-
 
 ;          VDM PARAMETERS
 ;

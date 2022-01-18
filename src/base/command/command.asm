@@ -1,5 +1,3 @@
-	section COMMAND
-	public	COMND, DISPT, register_command, load_cmd_tab
 pre    set $
 
 ; ------------------------------------------------------ 
@@ -313,13 +311,29 @@ builtin_cmd_tab:
 	dw TXEQ
 	db 'CA'    ;CAT
 	dw TLIST
+	db 0
+	db 0
 
 load_cmd_tab:
-	lxi h, COMMAND_TAB
-	lxi d, builtin_cmd_tab
-	mvi b, 8*4
-	call memcpy
-	ret
+	lxi d, COMMAND_TAB
+.loop:
+	mov a, m
+	inx h
+	ora m
+	dcx h ; Doesn't affect status
+	
+	; Check if last two bytes were zero, end of copy
+	rz 	
+	; Otherwise, perform the copy for next 4 bytes
+	mvi b, 4
+-:
+	mov a, m
+	stax d
+	inx h
+	inx d
+	dcr b
+	jnz -
+	jmp .loop
 
 	;include custom.asm
 	; if STRINGS=TRUE
@@ -327,5 +341,4 @@ load_cmd_tab:
 	; include inout.asm
 	; include ihex.asm
 	; endif
-	endsection COMMAND
 

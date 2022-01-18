@@ -4,7 +4,6 @@
 ; This routine reads one byte from an IO port and displays
 ; the value to the output device.
 ;
-	PUBLIC	in, out
 in: \
 	call	get_hex_arg	; Get IO port argument
 	; get_hex_arg returns value in H/L

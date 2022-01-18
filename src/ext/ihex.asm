@@ -1,5 +1,3 @@
-       PUBLIC inhex
-
 finish_msg: \
        db LF
        db 'DONE'

@@ -1,4 +1,3 @@
-	PUBLIC	HELP
 HELP:	equ	$
 	lxi	H, HELP_STR
 	jmp	write_line

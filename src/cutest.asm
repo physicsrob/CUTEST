@@ -1,3 +1,4 @@
+	include constants.asm
 	include macros.asm
 	include config.asm
 	include base/base.asm
