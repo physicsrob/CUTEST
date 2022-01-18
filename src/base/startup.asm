@@ -44,19 +44,10 @@ startup_d:
 	lhld	DFLTS	;PICK UP DEFAULT PORTS
 	shld	IPORT	;FORCE PORTS TO DEFAULT
 	
-	ifdef setup_0
-	setup_0
-	endif
-	ifdef setup_1
-	setup_1
-	endif
-	ifdef setup_2
-	setup_2
-	endif
-	ifdef setup_3
-	setup_3
-	endif
-
+	setup_routine 0
+	setup_routine 1
+	setup_routine 2
+	setup_routine 3
 
 COMN1:	equ	$	;HERE TO TURN OFF TAPES, THEN COMMAND MODE
 	xra	A

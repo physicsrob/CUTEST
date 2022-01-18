@@ -22,32 +22,42 @@ out_pseudo:	\
 ; OUTPUT DEVICE TABLE
 ; Note, to change this table, update config/pseudoports.asm
 OTAB:	equ $
-	ifdef out_0
+	ifdef PSEUDOPORT_0_DPORT
 	dw out_0
 	endif
-	ifdef out_1
+	ifdef PSEUDOPORT_1_DPORT
 	dw out_1
 	endif
-	ifdef out_2
+	ifdef PSEUDOPORT_2_DPORT
 	dw out_2
 	endif
-	ifdef out_3
+	ifdef PSEUDOPORT_3_DPORT
 	dw out_3
 	endif
+
+in_0	input_routine 0
+in_1	input_routine 1
+in_2	input_routine 2
+in_3	input_routine 3
+
+out_0	output_routine 0
+out_1	output_routine 1
+out_2	output_routine 2
+out_3	output_routine 3
 
 ; INPUT DEVICE TABLE
 ; Note, to change this table, update config/pseudoports.asm
 ITAB:	equ $
-	ifdef in_0
+	ifdef PSEUDOPORT_0_DPORT
 	dw in_0
 	endif
-	ifdef in_1
+	ifdef PSEUDOPORT_1_DPORT
 	dw in_1
 	endif
-	ifdef in_2
+	ifdef PSEUDOPORT_2_DPORT
 	dw in_2
 	endif
-	ifdef in_3
+	ifdef PSEUDOPORT_3_DPORT
 	dw in_3
 	endif
 

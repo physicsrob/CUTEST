@@ -15,41 +15,89 @@ ADD_PSEUDOPORT	macro	i, \
 				WRITEMASK, \
 				RESETMASK, \
 				SETUPMASK \
-		
 
-in_i:		equ $
-		in STATUSPORT
-		if strlen("READINVERT")>0
-		   CMA
-		endif
-		ani READMASK
-		rz
-		in DATAPORT
-		ret
 
-		if strlen("VDM")>0
-USEVDM:	   equ TRUE
-out_i:		   equ VDM01
-		ELSE
-out_i:		   equ $
-$$loop		   in STATUSPORT
-		   ani WRITEMASK
-		   jz $$loop
-		   mov A,B
-		   out DATAPORT
-		   ret
-		endif
+	if strlen("VDM") > 0
+PSEUDOPORT_i_USEVDM equ True
+USEVDM equ True
+	else
+PSEUDOPORT_i_USEVDM equ False
+	endif
 
-setup_i	macro
-		   if strlen("RESETMASK")>0
-			mvi	A, RESETMASK 
-			OUT	STATUSPORT	
-		   endif
-		   if strlen("SETUPMASK")>0
-			mvi	A, SETUPMASK 
-			OUT	STATUSPORT	
-		   endif
-		endm
+PSEUDOPORT_i_DPORT equ DATAPORT 
+PSEUDOPORT_i_SPORT equ STATUSPORT
+PSEUDOPORT_i_RMASK equ READMASK
 
-		endm
+	if strlen("READINVERT")>0
+PSEUDOPORT_i_RINVERT equ READINVERT
+	else
+PSEUDOPORT_i_RINVERT equ False
+	endif
 	
+	if strlen("WRITEMASK") > 0
+PSEUDOPORT_i_WMASK equ WRITEMASK
+	else
+PSEUDOPORT_i_WMASK equ False
+	endif
+
+	if strlen("RESETMASK")>0
+PSEUDOPORT_i_RSTMASK equ RESETMASK
+	else
+PSEUDOPORT_i_RSTMASK equ False
+	endif
+	
+
+	if strlen("SETUPMASK")>0
+PSEUDOPORT_i_STPMASK equ SETUPMASK
+	else
+PSEUDOPORT_i_STPMASK equ False
+	endif
+
+	endm
+
+input_routine	macro i
+	ifdef PSEUDOPORT_i_DPORT
+
+	in PSEUDOPORT_i_SPORT 
+	if PSEUDOPORT_i_RINVERT <> False
+		CMA
+	endif
+	ani PSEUDOPORT_i_RMASK
+	rz
+	in PSEUDOPORT_i_DPORT
+	ret
+
+	endif
+	endm
+
+output_routine macro i
+	ifdef PSEUDOPORT_i_DPORT
+
+	if PSEUDOPORT_i_USEVDM <> False
+	jmp VDM01
+	else
+$$loop in PSEUDOPORT_i_SPORT
+	ani PSEUDOPORT_i_WMASK 
+	jz $$loop
+	mov A,B
+	out PSEUDOPORT_i_DPORT
+	ret
+	endif
+	endif
+	endm
+
+setup_routine	macro i
+	ifdef PSEUDOPORT_i_DPORT
+	
+	if PSEUDOPORT_i_RSTMASK <> False
+	mvi A, PSEUDOPORT_i_RSTMASK
+	out PSEUDOPORT_i_SPORT
+	endif
+	
+	if PSEUDOPORT_i_STPMASK <> False
+	mvi A, PSEUDOPORT_i_RSTMASK
+	out PSEUDOPORT_i_SPORT
+	endif
+	
+	endif
+	endm
