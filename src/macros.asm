@@ -6,12 +6,12 @@ $$loop		call addr
 		endm
 
 
-add_PSEUDOPORT	macro	i, \
+ADD_PSEUDOPORT	macro	i, \
 				VDM, \
 				DATAPORT, \
 				STATUSPORT, \
 				READMASK, \
-				READiNVERT, \
+				READINVERT, \
 				WRITEMASK, \
 				RESETMASK, \
 				SETUPMASK \
@@ -19,7 +19,7 @@ add_PSEUDOPORT	macro	i, \
 
 in_i:		equ $
 		in STATUSPORT
-		if strlen("READiNVERT")>0
+		if strlen("READINVERT")>0
 		   CMA
 		endif
 		ani READMASK

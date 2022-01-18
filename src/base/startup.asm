@@ -19,7 +19,7 @@ startup_a:	xra	A
 ;
 ; DETERMINE THE DEFAULT PORTS
 ;     THIS COULD BECOME "mvi A,XX" FOR YOUR SPECIFIC PORTS
-	IN	SENSE	;GET SWITCHES
+	IN	SENSE_PORT	;GET SWITCHES
 ;
 	mov	B,A	;SAVE IT
 	ani	3	;MAKE IT A VALID PORT
@@ -34,7 +34,7 @@ startup_a:	xra	A
 	endif
 
 startup_b:	
-	mov	A,B	;FM SENSE SWITCHES
+	mov	A,B	;FM SENSE_PORT SWITCHES
 	rar
 	rar		;NEXT 2 BITS ARE INPUT PORT
 	ani	3	;VALID PORT
@@ -57,17 +57,6 @@ startup_d:
 	setup_3
 	endif
 
-; 	if STRINGS = TRUE
-; 	ifdef BANNER
-; display_banner: \
-; 	jmp +
-; BANNER_STR: \
-; 	db BANNER
-; 	db 0
-; +:	lxi	H, BANNER_STR
-; 	call	write_line
-; 	endif
-; 	endif
 
 COMN1:	equ	$	;HERE TO TURN OFF TAPES, THEN COMMAND MODE
 	xra	A
@@ -83,3 +72,4 @@ COMN1:	equ	$	;HERE TO TURN OFF TAPES, THEN COMMAND MODE
 	mvi B, 0
 	call memset
 	call load_cmd_tab
+

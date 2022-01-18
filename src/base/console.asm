@@ -118,26 +118,6 @@ to_upper: \
 	xri	20h	; Remove lower case bit
 	ret
 	
-; --- Write Line Subroutine ---
-; Prints a line to the current pseudoport
-; HL should point to null terminated string
-; -----------------------------
-	if STRINGS = TRUE
-write_line:
-	mov	A, M
-	ora	A
-	rz	; NULL -- RETURN
-	cpi	LF
-	jnz	+
-	call	write_crlf
-	jmp	.cont
-+:	mov	B, A
-	call	SOUT
-.cont: \
-	inx	H
-	jmp write_line
-	endif
-
 write_crlf:	mvi	B,LF	;LINE FEED
 	call	SOUT
 	mvi	B,CR	;CARRIAGE RETURN
