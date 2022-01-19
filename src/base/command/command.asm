@@ -286,14 +286,6 @@ error_handler:	\
 
 
 
-
-	include dump.asm
-	include entr.asm
-	include exec.asm
-	include cassette.asm
-	include set.asm
-	
-
 builtin_cmd_tab:
 	db 'DU'
 	dw DUMP
@@ -316,6 +308,34 @@ builtin_cmd_tab:
 
 load_cmd_tab:
 	lxi d, COMMAND_TAB
+
+	; Swap D/H
+	xchg
+	; D=Ptr to new entries
+	; H=Ptr to current table
+
+	; Skip non null entries in command table
+-:
+	mov a, m
+	inx h
+	ora m
+	dcx h ; Doesn't affect status
+	; If zero, we're at the end of table and should continue
+	jz +
+	; Not zero, so we still need to skip entries
+	inx h
+	inx h
+	inx h
+	inx h
+	jmp -
+
++:
+	; H now points to first empty position of cmd table
+	; Loop through copying
+
+	xchg
+	; H=Ptr to new entries
+	; D=Ptr to firts open position in current table
 .loop:
 	mov a, m
 	inx h
@@ -334,11 +354,11 @@ load_cmd_tab:
 	dcr b
 	jnz -
 	jmp .loop
-
-	;include custom.asm
-	; if STRINGS=TRUE
-	; include help.asm
-	; include inout.asm
-	; include ihex.asm
-	; endif
-
+	
+	
+	include dump.asm
+	include entr.asm
+	include exec.asm
+	include cassette.asm
+	include set.asm
+	

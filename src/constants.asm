@@ -21,3 +21,9 @@ CR:	equ	13
 BLANK:	equ	' '
 SPACE:	equ	BLANK
 ESC:	equ	1BH
+
+; opcodes
+IN_OPCODE: equ 0DBh
+RET_OPCODE: equ 0C9h
+NOOP_OPCODE: equ 0
+OUT_OPCODE: equ 0D3h

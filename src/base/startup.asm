@@ -56,7 +56,6 @@ COMN1:	equ	$	;HERE TO TURN OFF TAPES, THEN COMMAND MODE
 	;
 	; Setup command table
 	;
-	; TODO make a memset util
 	; Reset command tab to zeros
 	lxi H, COMMAND_TAB
 	lxi D, COMMAND_TAB_LEN
