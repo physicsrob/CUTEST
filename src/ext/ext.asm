@@ -5,7 +5,8 @@
 
        ; Install command table
 	lxi h, ext_cmd_tab
-	call load_cmd_tab
+       mvi b, 2
+	call register_command_tab
 
        ; Display Banner
        lxi     H, BANNER_STR
@@ -19,8 +20,6 @@ ext_cmd_tab:
 	dw in
 	db 'OU'
 	dw out
-       db 0
-       db 0
        
        include strutil.asm
        include strings.asm

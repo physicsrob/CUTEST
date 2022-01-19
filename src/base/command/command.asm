@@ -116,38 +116,6 @@ get_command_record:
 	ret
 
 
-; --- register_command ---
-; Registers a command.
-; Command record must be pointed to by DE
-; Command record format:
-;    Name - 2 bytes, padded by spaces
-;    Entry Point - 2 bytes
-; ------------------------
-register_command:
-	lxi h, COMMAND_TAB
-.loop:
-	mov a, m
-	inx h
-	ora a
-	jnz +
-	ora m
-+:
-	inx h
-	inx h
-	inx h
-	jnz .loop
-	
-	; Last entry of table was null
-	dcx h
-	dcx h
-	dcx h
-	dcx h
-
-	; Copy record to table
-	mvi b, 4
-	call memcpy
-	ret
-
 ; To modify the command table entry's, edit config/commands.asm
 ; --- write_prompt ---
 ; output a crlf followed by a prompt
@@ -303,10 +271,22 @@ builtin_cmd_tab:
 	dw TXEQ
 	db 'CA'    ;CAT
 	dw TLIST
-	db 0
-	db 0
 
-load_cmd_tab:
+
+; --- register_command ---
+; Registers a command.
+; Command record must be pointed to by HL
+; ------------------------
+register_command:
+	mvi b, 1
+	; drop through to register_command_tab
+
+; --- register_command_tab ---
+; Arguments:
+;   HL - points to new command table entries 
+;   B - maximum number of entries to copy 
+; --------------------
+register_command_tab:
 	lxi d, COMMAND_TAB
 
 	; Swap D/H
@@ -319,17 +299,14 @@ load_cmd_tab:
 	mov a, m
 	inx h
 	ora m
-	dcx h ; Doesn't affect status
+	inx h
 	; If zero, we're at the end of table and should continue
-	jz +
-	; Not zero, so we still need to skip entries
-	inx h
-	inx h
-	inx h
-	inx h
-	jmp -
-
-+:
+	; Otherwise, we continue
+	jnz -
+	
+	dcx h
+	dcx h
+	
 	; H now points to first empty position of cmd table
 	; Loop through copying
 
@@ -337,23 +314,22 @@ load_cmd_tab:
 	; H=Ptr to new entries
 	; D=Ptr to firts open position in current table
 .loop:
-	mov a, m
-	inx h
-	ora m
-	dcx h ; Doesn't affect status
-	
-	; Check if last two bytes were zero, end of copy
-	rz 	
-	; Otherwise, perform the copy for next 4 bytes
-	mvi b, 4
+	; Perform the copy for next 4 bytes
+	mvi c, 4
 -:
 	mov a, m
 	stax d
 	inx h
 	inx d
-	dcr b
+	dcr c
 	jnz -
-	jmp .loop
+
+	; Finished copying entry, lets copy more
+	; unless we've reached the max
+	dcr b
+	jnz .loop
+	ret
+
 	
 	
 	include dump.asm
