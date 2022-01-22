@@ -29,9 +29,9 @@ HELP_STR: \
        ;'CU', CUSET, 'Custom command'
        db 'IN      <port> - Read from port\n'
        db 'OU      <port> <value> - Write to port\n'
-       db 'HI      Input intel hex\n'
-	db '?      Help\n'
-	db '? SET  Set Help \n'
+       db 'IH      <pseudoport> Input intel hex\n'
+	db '?       Help\n'
+	db '? SET   Set Help \n'
 	db 0	;END OF STRING
 
 SET_STR:
