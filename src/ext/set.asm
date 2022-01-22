@@ -109,29 +109,6 @@ SETTAB:	\
 
 	ifdef STRINGS
 SETHELP_MSG:
-	; db	LF
-	; db	'SET <key> = <value>'
-	; db	LF
-	; db	'TA   Tape speed'
-	; db	LF
-	; db	'S    Display speed'
-	; db	LF
-	; db	'I    Input pseudoport'
-	; db	LF
-	; db	'O    Output psuedoport'
-	; db	LF
-	; db	'CI   Custom input driver address'
-	; db	LF
-	; db	'CO   Custom output driver address'
-	; db	LF
-	; db	'XE   File header XEQ address'
-	; db	LF
-	; db	'TY   Header type'
-	; db	LF
-	; db	'N    Number of nulls following CRLF'
-	; db	LF
-	; db	'CR   CRC (Normal or Ignore CRC errors)'
-	; db	LF
 	db 	0
 	endif
 

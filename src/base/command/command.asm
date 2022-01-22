@@ -66,7 +66,14 @@ find_command:
 	mov d, b
 	; d now contains the first char
 	; e now contains the second char
-	
+
+	mvi a, '?'
+	cmp d
+	jnz +
+	; d is '?', set e to ' '
+	mvi e, ' '	
++:
+
 	lxi h, COMMAND_TAB
 .loop:
 	; h points to current position in command_tab
@@ -252,6 +259,55 @@ error_handler:	\
 	call	SOUT	;INDICATE INPUT NOT VALID
 	jmp	COMND	;NOW READY FOR NEXT INPUT
 
+;
+;
+;
+;   THIS ROUTINE GETS A NAME OF UP TO 5 CHARACTERS
+;  FROM THE INPUT STRING.  IF THE TERMINATOR IS A
+;  SLASH (/) THEN THE CHARACTER FOLLOWING IS TAKEN
+;  AS THE CASSETTE UNIT SPECIFICATION.
+;
+;
+NAME0:	equ	$	;ENTER HERE TO SET HL TO THEAD
+	lxi	H, THEAD	;PT WHERE TO PUT NAME
+NAME:	call	find_next_arg	;SCAN OVER TO FIRST CHRS
+	mvi	B,6
+-:	ldax	D	;GET CHARACTER
+	cpi	' '	;NO UNIT DELIMITER
+	jz	NFIL
+	cpi	'/'	;UNIT DELIMITER
+	jz	NFIL
+	mov	M,A
+	inx	D	;BUMP THE SCAN POINTER
+	inx	H
+	dcr	B
+	jnz	-	;NAME IS OK, FALL THRU TO 'error_handler_DE' if NOT
+	jmp	error_handler
+;
+;
+;
+;  HERE WE HAVE SCANNED OFF THE NAME. ZERO FILL IN FOR
+;  NAMES LESS THAN FIVE CHARACTERS.
+;
+NFIL:	mvi	M,0	;PUT IN AT LEAST ONE ZERO
+	inx	H
+	dcr	B
+	jnz	NFIL	;LOOP UNTIL B IS ZERO
+;
+	cpi	'/'	;IS THERE A UNIT SPECIFICATION?
+	mvi	A,1	;PretEND NOT
+	jnz	DEFLT
+	inx	D	;MOVE PAST THE TERMINATOR
+	call	find_non_blank	;GO GET IT
+	sui	'0'	;REMOVE ASCII BIAS
+;
+DEFLT:	equ	$	;CNVRT TO INTERNAL BIT FOR TAPE CONTROL
+	ani	1	;JUST BIT ZERO
+	mvi	A,TAPE1	;ASSUME TAPE ONE
+	jnz	STUNT	;if NON ZERO, IT IS ONE
+	rar		;ELSE MAKE IT TAPE TWO
+STUNT:	sta	FNUMF	;set IT IN
+	ret
 
 
 builtin_cmd_tab:

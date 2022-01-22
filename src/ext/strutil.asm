@@ -17,3 +17,27 @@ write_line:
 	inx	H
 	jmp write_line
 
+
+; --- memcmp ---
+; Compare two strings (for B chars)
+;
+; Arguments:
+;    HL - str1
+;    DE - str2
+;    B - length 
+; Returns:
+;    Non zero if strings don't match
+;    Zero if strings are the same
+; --------------
+memcmp:
+	ldax d
+	cmp m
+	rnz ; Return non-zero if the strings dont match
+	inx d
+	inx h
+	dcr b
+	;call debug_state
+	jnz memcmp
+	ret
+
+	

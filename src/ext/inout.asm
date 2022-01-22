@@ -55,12 +55,39 @@ in: \
 	call	write_crlf
 	ret
 	
-out: \
-	call	get_hex_arg	; Get IO port argument
-	mov	a, l
-	sta	.out + 1
-	call	get_hex_arg	; Get value
-	mov	a, l
-.out:	out 0h ; The port will get overwritten
-	ret
+out:
+	; Now we setup a routine in the stack to perform
+	; OUT <port>
 	
+	; We want the stack to look like:
+	; NOP
+	; OUT <port>
+	; RET
+
+	; But of course, we must work backward
+	
+	; Get IO port argument
+	call	get_hex_arg	
+
+	; Store <PORT> RET
+	mvi h, RET_OPCODE ; l already = port
+	push h
+	
+	; Get value
+	call	get_hex_arg	
+	mov	a, l
+
+	; Store NOOP OUT
+	mvi d, OUT_OPCODE
+	mvi e, NOOP_OPCODE
+	push d
+	
+	; Now lets call it!
+	lxi h, 0
+	dad sp
+	
+	; Fix the stack
+	pop d
+	pop d
+	
+	pchl

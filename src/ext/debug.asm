@@ -1,4 +1,4 @@
-INCLUDE_DEBUG equ False
+INCLUDE_DEBUG equ True
        if INCLUDE_DEBUG = True
 
 ; sleep 
