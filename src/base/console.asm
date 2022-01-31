@@ -81,35 +81,59 @@ read_line:	\
 	lxi D, 80 ; Numer of chars to rset to space
 	mvi B, ' '
 	call memset
+	lxi H, INLIN+79
+	mvi m, 0
 
 read_loop:	\
 	call_until_nz	SINP	; READ INPUT DEVICE
 	call	to_upper
-	ani	7FH	;MAKE SURE NO X'80' BIT DURING CMND MODE
-	jz	startup_d	;if EITHER MODE (OR CTL-@)
-	mov	B,A
-	cpi	CR	;IS IT CR?
-	jz finish_line
-	cpi	LF	;IS IT A LINEFEED
-	jz	finish_line	;YES--TERMINATE LINE AS IS
-	lhld	INPTR	;CRNT LINE PTR
-	cpi	7FH	;DELETE CHR?
-	jnz	+	;NO--OK
-	mvi	B,BACKS	;REPLACE IT
-	dcx	H	;BACK LINE PTR UP TOO
-	mvi	A,'G'-40H	;SEE if A BELL
-	cmp	M	;IS IT?
-	jnz	++	;NO--OK
-	mov	B,A	;YES--RING THE BELL THEN
-+:		equ	$	;STORE CHAR in INPUT AREA
-	mov	M,B	;PLACE CHAR INTO LINE
-	inx	H	;NEXT CHAR
-+:		equ	$	;SAVE NEW LINE PTR
-	shld	INPTR	;SAVE PTR
 
+	; Check for restart characters
+	; which is 80 hex
+	ani	7FH	
+	jz	startup_d
+
+	; Check for CR or LF, in either case finish the line
+	mov B,A
+	cpi CR	;IS IT CR?
+	jz .finish_line
+	cpi LF	;IS IT A LINEFEED
+	jz .finish_line	;YES--TERMINATE LINE AS IS
+
+	; Not CR/LF, Not restart
+	; Set HL to current line pointer
+	lhld	INPTR
+
+	; Check if current key is delted
+	cpi	7FH
+	jnz	.store_char
+
+	; Current key is delete
+	; We'll display the special BACKS character
+	; instead of the delete char
+	dcx	H	;BACK LINE PTR UP TOO
+	
+	; Check to see if we've delete too far
+	mvi	A, 7	; See if HL is pointing at the bell char
+	cmp	M
+	jz	read_line ; If so, start over
+
+.del_char:	
+	; If not, let's whipe out the character from the buf 
+	mvi m, ' '
+	mvi B, BACKS
+	jmp .save_ptr
+
+.store_char:
+	mov M,B ;PLACE CHAR INTO LINE
+	inx H	;NEX@T CHAR
+
+.save_ptr:
+	shld	INPTR	;SAVE PTR
 	call	SOUT
 	jmp	read_loop
-finish_line:	\
+
+.finish_line:	\
 	; Assume non-vdm input
 	; set INPTR to beginning of input buffer (INLIN)
 	lxi	H,INLIN	;ASSUME NON-VDM INPUT
@@ -128,7 +152,8 @@ to_upper: \
 	xri	20h	; Remove lower case bit
 	ret
 	
-write_crlf:	mvi	B,LF	;LINE FEED
+write_crlf:
+	mvi	B,LF	;LINE FEED
 	call	SOUT
 	mvi	B,CR	;CARRIAGE RETURN
 	call	SOUT
