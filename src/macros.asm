@@ -95,7 +95,7 @@ setup_routine	macro i
 	endif
 	
 	if PSEUDOPORT_i_STPMASK <> False
-	mvi A, PSEUDOPORT_i_RSTMASK
+	mvi A, PSEUDOPORT_i_STPMASK
 	out PSEUDOPORT_i_SPORT
 	endif
 	
