@@ -16,20 +16,20 @@ memset:
        jnz memset
        ret
 
-; --- memcpy ---
-; Copy chunk of memory
-; Arguments:
-;    HL - destination
-;    DE - source
-;    B - length 
-; --------------
-memcpy:
-	ldax d
-	mov m, a
-	inx d
-       inx h
-	dcr b
-	jnz memcpy
-       ret
+; ; --- memcpy ---
+; ; Copy chunk of memory
+; ; Arguments:
+; ;    HL - destination
+; ;    DE - source
+; ;    B - length 
+; ; --------------
+; memcpy:
+; 	ldax d
+; 	mov m, a
+; 	inx d
+;        inx h
+; 	dcr b
+; 	jnz memcpy
+;        ret
 
 	

@@ -27,9 +27,10 @@ ext_cmd_tab:
 
 ext_cmd_tab_len equ 4
 
-       ;include debug.asm
+;       include debug.asm
        include strutil.asm
        include strings.asm
        include inout.asm
        include help.asm
        include ihex.asm
+

@@ -81,8 +81,8 @@ read_line:	\
 	lxi D, 80 ; Numer of chars to rset to space
 	mvi B, ' '
 	call memset
-	lxi H, INLIN+79
-	mvi m, 0
+	;lxi H, INLIN+79
+	;mvi m, 0
 
 read_loop:	\
 	call_until_nz	SINP	; READ INPUT DEVICE
@@ -104,10 +104,27 @@ read_loop:	\
 	; Set HL to current line pointer
 	lhld	INPTR
 
-	; Check if current key is delted
-	cpi	7FH
-	jnz	.store_char
+	; Check if current key is delete
+	; We support three delete keys:
+	; '_' (5FH), ascii del (7FH), ascii backspace (8H)
+	; 7FH is handled by to_upper converting it to 5FH
+	cpi 5FH
+	jz .is_delete
+	
+	cpi 8H
+	jz .is_delete
+	
 
+.store_char:
+	mov M,B ;PLACE CHAR INTO LINE
+	inx H	;NEX@T CHAR
+
+.save_ptr:
+	shld	INPTR	;SAVE PTR
+	call	SOUT
+	jmp	read_loop
+
+.is_delete:
 	; Current key is delete
 	; We'll display the special BACKS character
 	; instead of the delete char
@@ -124,15 +141,6 @@ read_loop:	\
 	mvi B, BACKS
 	jmp .save_ptr
 
-.store_char:
-	mov M,B ;PLACE CHAR INTO LINE
-	inx H	;NEX@T CHAR
-
-.save_ptr:
-	shld	INPTR	;SAVE PTR
-	call	SOUT
-	jmp	read_loop
-
 .finish_line:	\
 	; Assume non-vdm input
 	; set INPTR to beginning of input buffer (INLIN)
@@ -147,9 +155,16 @@ read_loop:	\
 to_upper: \
 	cpi	'a'
 	rc		; Carry indicates A is less than 'a'
-	cpi	'z' + 1
-	rnc		; No carry means that A is less than or equal to z
+	
+	; Note, we "upper case" 7B, 7C, 7D, 7E, and 7F
+	; shifting them to 5B, 5C, 5D, 5E, and 5F
+	; This converts delete to '_', which is desirable
+	; so we can treat '_' and delete the same.
+	; This could be undone by uncommenting these lines:
+	; cpi	'z' + 1
+	; rnc		; No carry means that A is less than or equal to z
 	xri	20h	; Remove lower case bit
+	
 	ret
 	
 write_crlf:

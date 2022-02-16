@@ -1,14 +1,7 @@
-Finish ihex loader
-See what can fit in 2K
-Get rid of custom command
-Make everything custom / get rid of add_command macro in favor of function
-	each command has a header
-	name    ds 5 ; Only first two bytes are checked
-	ptr     ds 2
-	help	ds 1 ; Variable length help text, null terminated (0 for no help)
-move dispatch, write_*, hex_* to utils
+- Fix serial port initialization (Actually it's fixed -- just not on ROM)
+- Investigate / fix backspace on keyboard not working
+- make backspace compatible with serial
+- fix register_command to work with null thingy
+- add extended entry points for reuse in programs
 
 
-
-
-fix in/out memory ram/rom issue
