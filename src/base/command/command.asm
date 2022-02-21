@@ -145,7 +145,7 @@ write_prompt: \
 ;	zero flag set if it was unable to find another argument
 ;	zero flag not set if found another argu
 ; Returns non-zero if it has found another argument.
-; 	The address of the argument will be loaded in DE 
+; 	The address of the argument will be loaded IN DE 
 ; --------------------
 find_next_arg:	\
 	mvi	C,12	;MAXIMUM COMMAND STRING
