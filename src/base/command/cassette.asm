@@ -21,9 +21,7 @@ TLOAD:	xra	A	;A=0 TLOAD, A=AF (#0) THEN XEQ
 	; So at this point
 	; H = DHEAD which is loaded with the argument name if specified
 	; H = THEAD which is uninitialized if the argument name is not specified 
-+:	push	H	;SAVE PTR TO WHICH HDR TO USE
-	call	ALOAD	;
-	pop	H	;RESTORE PTR TO PROPER HDR TO USE
++:
 	call	RTAPE	;READ IN THE TAPE
 	jc	TAERR	;TAPE ERROR?
 ;
@@ -69,7 +67,6 @@ TSAVE:	equ	$	;SAVE MEMORY IMAGE TO TAPE
 	shld	BLOCK	;STORE THE SIZE
 	push	H	;SAVE AS THE BLOCK SIZE
 ;
-	call	ALOAD	;GET UNIT AND SPEED
 	lxi	H,THEAD	;PT TO HEADER TO WRITE
 	call	WHEAD	;TURN TAPE ON, THEN WRITE HEADER
 	pop	D	;GET BACK THE SIZE
@@ -99,27 +96,14 @@ TLIST:	equ	$	;PRODUCE A LIST OF FILES ON A TAPE
 	call	write_crlf	;START ON A FRESH LINE
 ;
 ;
-LLIST:	call	ALOAD
-	mvi	B,1
-	call	TON	;TURN ON THE TAPE
+LLIST:	mvi	B,1
+	call	tape_on	;TURN ON THE TAPE
 LIST1:	call	RHEAD
 	jc	COMN1	;TURN OFF THE TAPE UNIT
 	jnz	LIST1
 	call	NAOUT	;OUTPUT THE HEADER
 	jmp	LLIST
-;
-;
-;   THIS ROUTINE GETS THE CASSETTE UNIT NUMBER AND
-;   SPEED TO REGISTER "A" FOR THE TAPE CALLS
-;
-;   Specifically
-;   Tape Speed: 20H or 0  
-;   Tape Unit: Either TAPE1 (80H) or TAPE2 (40H), specified in config
-;   These get ored together and stored in A
-ALOAD:	lxi	H,FNUMF	;POINT TO THE UNIT SPECIFICATION
-	lda	TSPD	;GET THE TAPE SPEED
-	ora	M	;PUT THEM TOGETHER
-	ret		;AND GO BACK
+
 ;
 ;   THIS ROUTINE OUTPUTS THE NAME AND PARAMETERS OF
 ;   THEAD TO THE OUTPUT DEVICE.

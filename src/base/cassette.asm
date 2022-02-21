@@ -328,13 +328,13 @@ RFBLK:	call	GTUNT	;SET UP A=UNIT WITH SPEED
 ;
 RTAPE:	push	D	;SAVE OPTIONAL ADDRESS
 	mvi	B,3	;SHORT DELAY
-	call	TON
+	call	tape_on
 	IN	TDATA	;CLEAR THE UART FLAGS
 ;
 PTAP1:	push	H	;HEADER ADDRESS
 	call	RHEAD	;GO READ HEADER
 	pop	H
-	jc	TERR	;IF AN ERROR OR ESC WAS RECEIVED
+	jc	tape_error	;IF AN ERROR OR ESC WAS RECEIVED
 	jnz	PTAP1	;IF VALID HEADER NOT FOUND
 ;
 ;  FOUND A VALID HEADER NOW DO COMPARE
@@ -366,29 +366,34 @@ PTAP1:	push	H	;HEADER ADDRESS
 RTAP:	push	D	;SAVE SIZE FOR RETURN TO callING PROGRAM
 ;
 RTAP2:	equ	$	;HERE TO LOOP RDING BLKS
-	call	dcrCT	;DROP COUNT, B=LEN THIS BLK
-	jz	RTOFF	;ZERO=ALL DONE
+	call	DCRCT	;DROP COUNT, B=LEN THIS BLK
+	jz	tape_off	;ZERO=ALL DONE
 ;
 	call	RHED1	;READ THAT MANY BYTES
-	jc	TERR	;IF ERROR OR ESC
+	jc	tape_error	;IF ERROR OR ESC
 	jz	RTAP2	;RD OK--READ SOME MORE
 ;
 ;  ERROR RETURN
 ;
-TERR:	xra	A
+tape_error:	
+	; Turn tape off (send 0 to status) 
+	; Pop DE off the stack
+	; and return
 	stc		;SET ERROR FLAGS
-	jmp	RTOF1
+	jmp	tape_off
 ;
 ;
-TOFF:	mvi	B,1
+delay_then_off:
+	mvi	B,1
 	call	DELAY
-RTOFF:	xra	A
-RTOF1:	OUT	TAPPT
+tape_off:
+	xra	A
+	out	TAPPT
 	pop	D	;RETURN BYTE COUNT
 	ret
 ;
 ;
-dcrCT:	equ	$	;COMMON RTN TO COUNT DOWN BLK LENGTHS
+DCRCT:	equ	$	;COMMON RTN TO COUNT DOWN BLK LENGTHS
 	xra	A	;CLR FOR LATER TESTS
 	mov	B,A	;SET THIS BLK LEN=256
 	ora	D	;IS AMNT LEFT < 256
@@ -513,8 +518,8 @@ WTAPE:	equ	$	;HERE TO WRITE TAPE
 WTAP1:	equ	$	;HERE FOR THE EXTRA push
 	push	H	;A DUMMY push FOR LATER EXIT
 WTAP2:	equ	$	;LOOP HERE UNTIL ENTIRE AMOUNT READ
-	call	dcrCT	;DROP COUNT IN DE AND set UP B W/LEN THIS BLK
-	jz	TOFF	;RETURNS ZERO if ALL DONE
+	call	DCRCT	;DROP COUNT IN DE AND set UP B W/LEN THIS BLK
+	jz	delay_then_off	;RETURNS ZERO if ALL DONE
 	call	WTBL	;WRITE BLOCK FOR BYTES in B (256)
 	jmp	WTAP2	;LOOP UNTIL ALL DONE
 ;
@@ -540,7 +545,8 @@ DOCRC:	equ	$	;A COMMON CRC COMPUTATION ROUTINE
 ;   HL TO THE TAPE.
 ;
 WHEAD:	equ	$	;HERE TO 1ST TURN ON THE TAPE
-	call	WTON	;TURN IT ON, THEN WRITE HEADER
+	mvi	B,4	; Set delay after tape on
+	call	tape_on	;TURN IT ON, THEN WRITE HEADER
 	mvi	D,50	;WRITE 50 ZEROS
 NULOP:	xra	A
 	call	WRTAP
@@ -584,15 +590,29 @@ GTUNT:	equ	$	;SET A=SPEED + UNIT
 GTUN2:	adi	TAPE2	;UNIT AND SPEED NOW SET IN A
 	ret		;ALL DONE
 ;
-WTON:	mvi	B,4	;SET LOOP DELAY  (BIT LONGER ON A WRITE)
-TON:	equ	$	;HERE TO TURN A TAPE ON THEN DELAY
-	OUT	TAPPT	;GET TAPE MOVING, THEN DELAY
+tape_on:
+	; Turn tape on and then delay (length based on B)
+	;HERE TO TURN A TAPE ON THEN DELAY
+	;   Status is combination of tape speed and unit 
+	;   Tape Speed: 20H or 0  
+	;   Tape Unit: Either TAPE1 (80H) or TAPE2 (40H), specified in config
+	; Load tape speed
+	lda	TSPD
+	
+	; Load FNUMF and or them together
+	push H
+	lxi	H,FNUMF	
+	ora	M
+	pop H
+
+	; Write to status port
+	OUT	TAPPT
 ;
 DELAY:	lxi	D,0
-DLOP1:	dcx	D
+-:	dcx	D
 	mov	A,D
 	ora	E
-	jnz	DLOP1
+	jnz	-
 	dcr	B
 	jnz	DELAY
 	ret
