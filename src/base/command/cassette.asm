@@ -22,7 +22,7 @@ TLOAD:	xra	A	;A=0 TLOAD, A=AF (#0) THEN XEQ
 	; H = DHEAD which is loaded with the argument name if specified
 	; H = THEAD which is uninitialized if the argument name is not specified 
 +:
-	call	RTAPE	;READ IN THE TAPE
+	call	cassette_read_block	;READ IN THE TAPE
 	jc	TAERR	;TAPE ERROR?
 ;
 	call	NAOUT	;PUT out THE HEADER PARAMETERS
