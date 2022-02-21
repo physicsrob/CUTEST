@@ -95,11 +95,15 @@ SET_TAB:	\
 	dw tape_speed_setter
 	dw TSPD
 
+	db 'TU' ; set tape tape_unit
+	dw tape_unit_setter
+	dw FNUMF
+
 	db 'S=' ; set VDM speed
 	dw byte_setter
 	dw SPEED
 
-	db 'I=' ; set input port
+	db 'I=' ; SET INput port
 	dw byte_setter
 	dw IPORT
 
@@ -164,3 +168,18 @@ tape_speed_setter:
 	; If tape speed is zero, store zero
 	mvi m, 0
 	ret
+
+; ---- tape_unit_setter ---
+;    HL - address of variable to change
+;    BC - value to set
+tape_unit_setter:
+	xra a
+	ora c
+	cpi '1'
+	mvi m, TAPE1
+	rz
+	cpi '2'
+	mvi m, TAPE2
+	rz
+	jmp error_handler
+

@@ -23,13 +23,13 @@ startup_a:	xra	A
 ;
 	mov	B,A	;SAVE IT
 	ani	3	;MAKE IT A VALID PORT
-	sta	DFLTS+1	;set DEFAULT OUTPUT PORT
+	sta	DFLTS+1	;SET DEFAULT OUTPUT PORT
 	
 	ifdef USEVDM 
 	ora	A	;SEE if THIS THE VDM
 	jnz	startup_b	;NO--DO NOT RESET VDM
 	
-	lxi	SP,TOP_OF_STACK	;set UP THE STACK FOR call
+	lxi	SP,TOP_OF_STACK	;SET UP THE STACK FOR call
 	call	ERASE_SCREEN	;(REG A ASSUMED TO COME BACK ZERO)
 	endif
 

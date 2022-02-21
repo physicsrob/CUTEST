@@ -7,7 +7,7 @@ pre    set $
 ; commands forever.
 ;  
 ; ------------------------------------------------------ 
-COMND:	lxi	SP,TOP_OF_STACK	;set STACK POINTER
+COMND:	lxi	SP,TOP_OF_STACK	;SET STACK POINTER
 	call	write_prompt		;PUT PROMPT ON SCREEN
 	call	read_line	;INIT TO GET COMMAND LINE
 	call	process_command	;PROCESS THE LINE
@@ -198,7 +198,7 @@ hex_str_to_hl: \
 	lxi	H,0	;CLEAR H & L
 -:	ldax	D	;GET CHARACTER
 	cpi	20H	;IS IT A SPACE?
-	rz		;if SO
+	rz		;IF SO
 	cpi	'/'
 	rz
 	cpi	':'
@@ -255,7 +255,7 @@ GET_OPT_HEX_ARG: \
 ; -------------------------------
 error_handler:	\
 	call	write_crlf
-	mvi	B,'?'	;set UP THE ????
+	mvi	B,'?'	;SET UP THE ????
 	call	SOUT	;INDICATE INPUT NOT VALID
 	jmp	COMND	;NOW READY FOR NEXT INPUT
 
@@ -275,8 +275,6 @@ NAME:	call	find_next_arg	;SCAN OVER TO FIRST CHRS
 -:	ldax	D	;GET CHARACTER
 	cpi	' '	;NO UNIT DELIMITER
 	jz	NFIL
-	cpi	'/'	;UNIT DELIMITER
-	jz	NFIL
 	mov	M,A
 	inx	D	;BUMP THE SCAN POINTER
 	inx	H
@@ -293,20 +291,6 @@ NFIL:	mvi	M,0	;PUT IN AT LEAST ONE ZERO
 	inx	H
 	dcr	B
 	jnz	NFIL	;LOOP UNTIL B IS ZERO
-;
-	cpi	'/'	;IS THERE A UNIT SPECIFICATION?
-	mvi	A,1	;PretEND NOT
-	jnz	DEFLT
-	inx	D	;MOVE PAST THE TERMINATOR
-	call	find_non_blank	;GO GET IT
-	sui	'0'	;REMOVE ASCII BIAS
-;
-DEFLT:	equ	$	;CNVRT TO INTERNAL BIT FOR TAPE CONTROL
-	ani	1	;JUST BIT ZERO
-	mvi	A,TAPE1	;ASSUME TAPE ONE
-	jnz	STUNT	;if NON ZERO, IT IS ONE
-	rar		;ELSE MAKE IT TAPE TWO
-STUNT:	sta	FNUMF	;set IT IN
 	ret
 
 

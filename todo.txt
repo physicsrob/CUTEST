@@ -1,7 +1,12 @@
+- refactor unit support
+- fix intel hex read
+- add tarbell support
+- fix ihex loader
+- add extended entry points for reuse in programs
+- make backspace compatible with serial
+
+
+Done:
 - Fix serial port initialization (Actually it's fixed -- just not on ROM)
 - Investigate / fix backspace on keyboard not working
-- make backspace compatible with serial
-- fix register_command to work with null thingy
-- add extended entry points for reuse in programs
-
-
+- Fix pseudoport selection from sense switches
