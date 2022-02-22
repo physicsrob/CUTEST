@@ -24,7 +24,7 @@ HELP_STR: \
        db 'GE(T)   (name (addr)) - Get a tape file into memory\n'
        db 'SA(VE)  (name) <a1> <a2> <a3> - Save file from memory to tape\n'
        db 'XE      (name(/unit) (addr)) - Get then execute a tape file\n'
-       db 'CA      (/unit) Catalog tape files\n'
+       db 'CA      Catalog tape files\n'
        db 'SE(T)   <key>=<value>\n'
        ;'CU', CUSET, 'Custom command'
        db 'IN      <port> - Read from port\n'

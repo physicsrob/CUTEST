@@ -4,6 +4,7 @@
 - fix ihex loader
 - add extended entry points for reuse in programs
 - make backspace compatible with serial
+- add custom command back
 
 
 Done:

@@ -176,10 +176,10 @@ tape_unit_setter:
 	xra a
 	ora c
 	cpi '1'
-	mvi m, TAPE1
+	mvi m, 0
 	rz
 	cpi '2'
-	mvi m, TAPE2
+	mvi m, 1 
 	rz
 	jmp error_handler
 

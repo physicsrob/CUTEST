@@ -21,8 +21,9 @@
 ;
 ;
 ;
-; cassette_open -- THIS ROUTINE IS ONLY ACCESSIBLE FROM THE FOPEN jmp POINT
-;        THIS ROUTINE "OPENS" THE CASSETTE UNIT FOR ACCESS
+; cassette_open -- 
+; THIS ROUTINE IS ONLY ACCESSIBLE FROM THE FOPEN JMP POINT
+; THIS ROUTINE "OPENS" THE CASSETTE UNIT FOR ACCESS
 ;
 ;   ON ENTRY:  A - HAS THE TAPE UNIT NUMBER (1 OR 2)
 ;             HL - HAS USER SUPPLIED HEADER FOR TAPE FILE
@@ -36,7 +37,8 @@
 ;   ERRORS:  BLOCK ALREADY OPEN
 ;
 ;
-cassette_open:	push	H	;SAVE HEADER ADDRESS
+cassette_open:
+	push	H	;SAVE HEADER ADDRESS
 	call	LFCB	;GET ADDRESS OF FILE CONTROL
 	jnz	TERE2	;FILE WAS ALREADY OPEN
 	mvi	M,1	;NOW IT IS
@@ -51,9 +53,9 @@ cassette_open:	push	H	;SAVE HEADER ADDRESS
 	lda	FNUMF	;GET WHICH ONE WE ARE GOING TO USE
 	add	D
 	mov	D,A	;256 bit add
-;
-UBUF:	pop	B	;HEADER ADDRESS
-	ora	A	;CLEAR CARRY AND RETURN AFTER SToriNG PARAMS
+	
+	pop	B	;HEADER ADDRESS
+	ora	A	;CLEAR CARRY AND RETURN AFTER STORING PARAMS
 	jmp	PSTOR	;STORE THE VALUES
 ;
 ;    GENERAL ERROR RETURN POINTS FOR STACK CONTROL
@@ -85,8 +87,9 @@ EOFER:	dcr	A	;SET MINUS FLAGS
 ;   ERROR RETURNS:  FILE WASN'T OPEN
 ;
 ;
-cassette_close:	call	LFCB	;GET CONTROL BLOCK ADDRESS
-	rz		;WASN'T OPEN, CARRY IS set FROM LFCB
+cassette_close:	
+	call	LFCB	;GET CONTROL BLOCK ADDRESS
+	rz		;WASN'T OPEN, CARRY IS SET FROM LFCB
 	ora	A	;CLEAR CARRY
 	inr	A	;SET CONDITION FLAGS
 	mvi	M,0	;CLOSE THE CONTROL BYTE
@@ -108,7 +111,7 @@ cassette_close:	call	LFCB	;GET CONTROL BLOCK ADDRESS
 	lxi	H,BLKOF	;OFFSET TO BLOCK SIZE
 	dad	B
 	ora	A	;TEST COUNT
-	jz	EOFW	;NO BYTES...JUST WRITE EOF
+	jz	.write_eof ;NO BYTES...JUST WRITE EOF
 ;
 ;    WRITE LAST BLOCK
 ;
@@ -122,17 +125,17 @@ cassette_close:	call	LFCB	;GET CONTROL BLOCK ADDRESS
 	mov	M,D
 	mov	H,B
 	mov	L,C	;PUT HEADER ADDRESS IN HL
-	call	WFBLK	;GO WRITE IT OUT
+	call	cassette_write_block	;GO WRITE IT OUT
 	pop	H	;BLOCK SIZE POINTER
-;
-;   NOW WRITE END OF FILE TO CASSETTE
-;
-EOFW:	xra	A	;PUT IN ZEROS FOR SIZE:  EOF MARK IS ZERO BYTES!
+
+.write_eof:
+	; Write end of file to cassette
+	xra	A	;PUT IN ZEROS FOR SIZE:  EOF MARK IS ZERO BYTES!
 	mov	M,A
 	inx	H
 	mov	M,A
 	pop	H	;HEADER ADDRESS
-	jmp	WFBLK	;WRITE IT out AND RETURN
+	jmp	cassette_write_block ;WRITE IT out AND RETURN
 ;
 ;
 ;
@@ -156,23 +159,19 @@ LFCB1:	equ	$	;HL PT TO PROPER FCB
 	ora	A	;SET FLAGS BASED ON CONTROL WORD
 	stc		;SET CARRY in CASE OF IMMEDIATE ERROR RETURN
 	ret
+
+; --- cassette_read_byte ---
+; Read tape byte routine.  This is used by the entry point, but
+; not any of the cassette commands.
 ;
-;
-;
-;
-;    READ TAPE BYTE ROUTINE
-;
-;    ENTRY:       -  A -  HAS FILE NUMBER
-;    EXIT: NORMAL -  A -  HAS BYTE
-;          ERROR
-;            CARRY set     - if FILE NOT OPEN OR
-;                            PREVIOUS OPERATIONS WERE WRITE
-;            CARRY & MINUS - END OF FILE ENCOUNTERED
-;
-;
-;
-;
-cassette_read_byte:	call	LFCB	;LOCATE THE FILE CONTROL BLOCK
+; ENTRY:       -  A -  HAS FILE NUMBER
+; EXIT: NORMAL -  A -  HAS BYTE
+; ERROR
+;    CARRY set     - F FILE NOT OPEN OR PREVIOUS OPERATIONS WERE WRITE
+;    CARRY & MINUS - END OF FILE ENCOUNTERED
+; -------------------------
+cassette_read_byte:
+	call	LFCB	;LOCATE THE FILE CONTROL BLOCK
 	rz		;FILE NOT OPEN
 	inr	A	;TEST if FF
 	jm	TERE0	;ERROR WAS WRITING
@@ -193,7 +192,7 @@ RDNBLK:	push	D	;BUFFER POINTER
 	push	H	;TABLE ADDRESS
 	inx	H
 	call	PHEAD	;PREPARE THE HEADER FOR READ
-	call	RFBLK	;READ IN THE BLOCK
+	call	cassette_read_block ;READ IN THE BLOCK
 	jc	TERE2	;ERROR pop OFF STACK BEFORE RETURN
 	pop	H
 	mov	A,E	;LOW BYTE OF COUNT (WILL BE ZERO if 256)
@@ -227,17 +226,15 @@ GTBYT:	dcr	A	;BUMP THE COUNT
 RT1:	ldax	D	;GET CHARACTER FROM BUFFER
 	ora	A	;CLEAR CARRY
 	ret		;ALL DONE
-;
-;
-;
-;
-;      THIS ROUTINE IS USED TO WRITE A BYTE TO THE FILE
-;
+
+; --- cassette_write_byte ---
+; Write tape byte routine.  This is used by the entry point, but
+; not accessed by any commands.wait_for_tape_data
 ;      ON ENTRY:   A -  HAS FILE NUMBER
 ;                  B -  HAS DATA BYTE
-;
-;
-cassette_write_byte:	call	LFCB	;GET CONTROL BLOCK
+; --------------------------
+cassette_write_byte:
+	call	LFCB	;GET CONTROL BLOCK
 	rz		;FILE WASN'T OPEN
 	inr	A
 	rz		;FILE WAS READ
@@ -267,7 +264,7 @@ WT1:	pop	PSW	;CHARACTER
 ;  CONTROL BLOCK.
 ;
 	call	PHEAD	;PREPARE THE HEADER
-	jmp	WFBLK	;WRITE IT out AND RETURN
+	jmp	cassette_write_block ;WRITE IT out AND RETURN
 ;
 ;
 ;
@@ -309,13 +306,6 @@ PLOAD:	inx	H
 ;
 ;
 ;
-;
-;   THIS ROUTINE SETS THE CORRECT UNIT FOR SYSTEM READS
-RFBLK:	call	GTUNT	;SET UP A=UNIT WITH SPEED
-;
-;
-;
-;
 ;              TAPE READ ROUTINES
 ;
 ;     ON-ENTRY:     A HAS UNIT AND SPEED
@@ -326,7 +316,8 @@ RFBLK:	call	GTUNT	;SET UP A=UNIT WITH SPEED
 ;                   TAPE UNITS ARE OFF
 ;
 ;
-cassette_read_block:	push	D	;SAVE OPTIONAL ADDRESS
+cassette_read_block:	
+	push	D	;SAVE OPTIONAL ADDRESS
 	mvi	B,3	;SHORT DELAY
 	call	tape_on
 	IN	TDATA	;CLEAR THE UART FLAGS
@@ -341,7 +332,7 @@ PTAP1:	push	H	;HEADER ADDRESS
 ;
 	push	H	;GET BACK AND RESAVE ADDRESS
 	lxi	D,THEAD
-	call	DHcmp	;COMPARE DE-HL HEADERS
+	call	DHCMP	;COMPARE DE-HL HEADERS
 	pop	H
 	jnz	PTAP1
 ;
@@ -412,8 +403,8 @@ dcrC2:	equ	$	;REDUCE COUNT BY 256
 ;   READ THE HEADER
 ;
 RHEAD:	mvi	B,10	;FIND 10 NULLS
-RHEA1:	call	STAT
-	RC		;IF ESCAPE
+RHEA1:	call wait_for_tape_data	
+	rc		;IF ESCAPE
 	IN	TDATA	;IGNORE ERROR CONDITIONS
 	ora	A	;ZERO?
 	jnz	RHEAD
@@ -423,7 +414,7 @@ RHEA1:	call	STAT
 ;    WAIT FOR THE START CHARACTER
 ;
 SOHL:	call	TAPIN
-	RC		;ERROR OR ESCAPE
+	rc		;ERROR OR ESCAPE
 	cpi	1	;ARE WE AT THE 01 YET (START CHAR)
 	jc	SOHL	;NO, BUT STIL ZEROES
 	jnz	RHEAD	;NO, LOOK FOR ANOTHER 10 NULLS
@@ -438,7 +429,7 @@ RHED1:	equ	$	;RD A BLOCK INTO HL FOR B BYTES
 	mvi	C,0	;INIT THE CRC
 RHED2:	equ	$	;LOOP HERE
 	call	TAPIN	;GET A BYTE
-	RC
+	rc
 	mov	M,A	;STORE IT
 	inx	H	;INCREMENT ADDRESS
 	call	DOCRC	;GO COMPUTE THE CRC
@@ -462,20 +453,22 @@ RHED2:	equ	$	;LOOP HERE
 ;  FOR AN ESC COMMAND.  IF RECEIVED THE TAPE LOAD IS
 ;  TERMINATED AND A RETURN TO THE COMMAND MODE IS MADE.
 ;
-STAT:	IN	TAPPT	;TAPE STATUS PORT
+wait_for_tape_data:
+	IN	TAPPT	;TAPE STATUS PORT
 	ani	TDR
 	rnz
 	call	SINP	;CHECK INPUT
-	jz	STAT	;NOTHING THERE YET
+	jz wait_for_tape_data
 	ani	7FH	;CLEAR PARITY 1ST
-	jnz	STAT	;EITHER MODE OR CTL-@
+	jnz wait_for_tape_data ;EITHER MODE OR CTL-@
 	stc		;SET ERROR FLAG
 	ret		;AND RETURN
 ;
 ;
 ;
-TAPIN:	call	STAT	;WAIT UNTIL A CHARACTER IS AVAILABLE
-	RC
+TAPIN:	
+	call	wait_for_tape_data
+	rc
 ;
 TREDY:	IN	TAPPT		;TAPE STATUS
 	ani	TFE+TOE	;DATA ERROR?
@@ -486,7 +479,6 @@ TREDY:	IN	TAPPT		;TAPE STATUS
 ;
 ;
 ;  THIS ROUTINE GETS THE CORRECT UNIT FOR SYSTEM WRITES
-WFBLK:	call	GTUNT	;SET UP A WITH UNIT AND SPEED
 ;
 ;
 ;
@@ -496,7 +488,7 @@ WFBLK:	call	GTUNT	;SET UP A WITH UNIT AND SPEED
 ;              HL   HAS POINTER TO HEADER
 ;
 ;
-cassette_write_block:	equ	$	;HERE TO WRITE TAPE
+cassette_write_block:
 	push	H	;SAVE HEADER ADDRESS
 	call	WHEAD	;TURN ON, THEN WRITE HDR
 	pop	H
@@ -571,7 +563,7 @@ WLOOP:	mov	A,M	;GET CHARACTER
 ;   THE USER SUPPLIED HEADER in ADDRESS HL.
 ;   ON RETURN if ZERO IS set THE TWO NAMES COMPARED
 ;
-DHcmp:	mvi	B,5
+DHCMP:	mvi	B,5
 DHLOP:	ldax	D
 	cmp	M
 	rnz
@@ -581,29 +573,21 @@ DHLOP:	ldax	D
 	inx	D
 	jmp	DHLOP
 ;
-GTUNT:	equ	$	;SET A=SPEED + UNIT
-	lda	FNUMF	;GET UNIT
-	ora	A	;SEE WHICH UNIT
-	lda	TSPD	;BUT 1ST GET SPEED
-	jnz	GTUN2	;MAKE IT UNIT TWO
-	adi	TAPE2	;THIS ONCE=UNIT 2, TWICE=UNIT 1
-GTUN2:	adi	TAPE2	;UNIT AND SPEED NOW SET IN A
-	ret		;ALL DONE
 ;
 tape_on:
 	; Turn tape on and then delay (length based on B)
-	;HERE TO TURN A TAPE ON THEN DELAY
 	;   Status is combination of tape speed and unit 
 	;   Tape Speed: 20H or 0  
 	;   Tape Unit: Either TAPE1 (80H) or TAPE2 (40H), specified in config
-	; Load tape speed
-	lda	TSPD
-	
-	; Load FNUMF and or them together
-	push H
-	lxi	H,FNUMF	
-	ora	M
-	pop H
+	; FNUMF will _always_ be 0 for tape 1 or 1 for tape 2
+	; This is different than CUTER where sometimes FNUMF
+	; is used for the bitmask rather than the unit number.
+	lda	FNUMF	;GET UNIT
+	ora	A	;SEE WHICH UNIT
+	lda	TSPD	;BUT 1ST GET SPEED
+	jnz	+ ;MAKE IT UNIT TWO
+	adi	TAPE2	;THIS ONCE=UNIT 2, TWICE=UNIT 1
++:	adi	TAPE2	;UNIT AND SPEED NOW SET IN A
 
 	; Write to status port
 	OUT	TAPPT
