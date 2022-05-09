@@ -1,0 +1,30 @@
+cuts method:
+	50 nulls are written before any data
+	10 nulls and then a 1 are required to proceed header
+	no synchronization issue
+	data available reliable method of testing if incoming data
+
+tarbell method:
+	write:
+		3C followed by E6
+	read:
+		reset before read
+		the E6 synchronizes and starts the data stream
+
+
+	... so how can we do a list function?
+	Easy enough to read header
+	... how can we find gap?
+	
+
+	One option:
+		Write:  3C E6 00 00 00 00 00 01 <data>
+		Read:
+			1. Reset
+			2. Test for data up to 64k times (should work out to about a second)
+			3. If timeout goto 1, otherwise continue (we have data)
+			4. Check if byte is 0, loop until nonzero
+			5. Check if count is 5, if not go to 1			
+			6. Check if byte is 1, if not goto 1
+			7. read
+ 	

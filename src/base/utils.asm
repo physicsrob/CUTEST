@@ -33,3 +33,13 @@ memset:
 ;        ret
 
 	
+;
+DELAY:	lxi	D,0
+-:	dcx	D
+	mov	A,D
+	ora	E
+	jnz	-
+	dcr	B
+	jnz	DELAY
+	ret
+	

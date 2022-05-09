@@ -23,18 +23,6 @@ VDM_MEM       equ 0CC00H    ; VDM SCREEN MEMORY
 VDM_STAT_PORT equ 0C8H      ; VDM CONTROL PORT
 
 
-;
-; TAPE CONFIG
-;
-
-TAPPT  equ 0FAH      ;TAPE STATUS PORT
-TDATA  equ 0FBH      ;TAPE DATA PORT
-TFE    equ 8         ;TAPE FRAMING ERROR
-TOE    equ 16        ;TAPE OVERFLOW ERROR
-TDR    equ 64        ;TAPE DATA READY
-TTBE   equ 128       ;TAPE TRANSMITTER BUFFER EMPTY
-TAPE1  equ 80H       ;1=TURN TAPE ONE ON
-TAPE2  equ 40H       ;1=TURN TAPE TWO ON
 
        ; Pseudoport 0 = Processor Tech VDM1 + Keyboard
        ADD_PSEUDOPORT       0, \

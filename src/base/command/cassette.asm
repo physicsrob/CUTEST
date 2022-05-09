@@ -25,7 +25,7 @@ TLOAD:	xra	A	;A=0 TLOAD, A=AF (#0) THEN XEQ
 	call	cassette_read_block	;READ IN THE TAPE
 	jc	TAERR	;TAPE ERROR?
 ;
-	call	NAOUT	;PUT out THE HEADER PARAMETERS
+	call	print_header	;PUT OUT THE HEADER PARAMETERS
 	pop	PSW	;RESTORE FLAG SAYING WHETHER IT WAS LOAD OR XEQ
 	ora	A
 	rz		;AUTO XEQ NOT WANTED
@@ -68,7 +68,7 @@ TSAVE:	equ	$	;SAVE MEMORY IMAGE TO TAPE
 	push	H	;SAVE AS THE BLOCK SIZE
 ;
 	lxi	H,THEAD	;PT TO HEADER TO WRITE
-	call	WHEAD	;TURN TAPE ON, THEN WRITE HEADER
+	call	write_header	;TURN TAPE ON, THEN WRITE HEADER
 	pop	D	;GET BACK THE SIZE
 	pop	H	;AND GET BACK THE ACTUAL START addr
 	jmp	WTAP1	;WRITE THE BLK (W/EXTRA push)
@@ -79,7 +79,7 @@ TAERR:	call	write_crlf
 	mvi	D,6
 	lxi	H,ERrm
 	call	NLOOP	;OUTPUT ERROR
-	call	NAOUT	;THEN THE HEADER
+	call	print_header	;THEN THE HEADER
 	jmp	COMN1
 ;
 ERrm:	db	'ERROR '
@@ -98,10 +98,10 @@ TLIST:	equ	$	;PRODUCE A LIST OF FILES ON A TAPE
 ;
 LLIST:	mvi	B,1
 	call	tape_on	;TURN ON THE TAPE
-LIST1:	call	RHEAD
+LIST1:	call	read_header
 	jc	COMN1	;TURN OFF THE TAPE UNIT
 	jnz	LIST1
-	call	NAOUT	;OUTPUT THE HEADER
+	call	print_header	;OUTPUT THE HEADER
 	jmp	LLIST
 
 ;
@@ -109,7 +109,8 @@ LIST1:	call	RHEAD
 ;   THEAD TO THE OUTPUT DEVICE.
 ;
 ;
-NAOUT:	mvi	D,8
+print_header:	
+	mvi	D,8
 	lxi	H,THEAD-1  ;POINT TO THE HEADER
 	call	NLOOP	;OUTPUT THE HEADER
 	call	BOUT	;ANOTHER BLANK

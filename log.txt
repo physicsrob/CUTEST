@@ -1,0 +1,20 @@
+May 7, 2022:
+Trying to rebuild context after not working on the project for a few months.
+I was able to boot cutest using the serial pseudoport (by examining C000 and then starting with 110001010 00000000 on the switches)
+
+I was able to load my tarbell test program by executing IH on the serial port and then pasting the hex for the test program.  I had to paste it line by line to avoid timing problems.
+
+Once I got the tarbell test program loaded I was able to dump to tape and load from tape.
+
+So, in other words this damn thing is working.
+
+The only thing I'm blocked on is getting cutest with tarbell working.  I think I should be able to get there fairly quickly, the load andump programs are almost identical to the test program (other than headers and such).  The real issue is get the list program working.  (see previous notes found in tape.txt)
+
+
+Next steps:
+- Write a test program that's capable of save/load/list (list being the hard one)
+- Incorporate that program into cutest
+- Put keyboard back together
+- Consider python tool for building tapes so that I can create a bunch of tapes quickly with lots of good software
+
+

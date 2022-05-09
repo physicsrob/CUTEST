@@ -56,7 +56,7 @@ cassette_open:
 	
 	pop	B	;HEADER ADDRESS
 	ora	A	;CLEAR CARRY AND RETURN AFTER STORING PARAMS
-	jmp	PSTOR	;STORE THE VALUES
+	jmp	store_BCDE	;STORE THE VALUES
 ;
 ;    GENERAL ERROR RETURN POINTS FOR STACK CONTROL
 ;
@@ -67,7 +67,8 @@ TERE0:	xra	A	;CLEAR ALL FLAGS
 	ret
 ;
 ;
-EOFER:	dcr	A	;SET MINUS FLAGS
+return_eof_error:
+	dcr	A	;SET MINUS FLAGS
 	stc		;AND CARRY
 	pop	D	;CLEAR THE STACK
 	ret		;THE FLAGS TELL ALL
@@ -98,7 +99,7 @@ cassette_close:
 ;    THE FILE OPERATIONS WERE "WRITES"
 ;
 ;  PUT THE CURRENT BLOCK ON THE TAPE
-;  (EVEN if ONLY ONE BYTE)
+;  (EVEN IF ONLY ONE BYTE)
 ;  THEN WRITE AN END OF FILE TO THE TAPE
 ;
 ;
@@ -106,7 +107,7 @@ cassette_close:
 	inx	H
 	mov	A,M	;GET CURSOR POSITION
 	mov	A,M	;GET CURSOR POSITION
-	call	PLOAD	;BC GET HEADER ADDRESS, DE BUFFER ADDRESS
+	call	load_BCDE	;BC GET HEADER ADDRESS, DE BUFFER ADDRESS
 	push	B	;HEADER TO STACK
 	lxi	H,BLKOF	;OFFSET TO BLOCK SIZE
 	dad	B
@@ -130,12 +131,14 @@ cassette_close:
 
 .write_eof:
 	; Write end of file to cassette
-	xra	A	;PUT IN ZEROS FOR SIZE:  EOF MARK IS ZERO BYTES!
+	; HL already setup to point to block size
+	; Set the block size to zero, this is how we represent EOF
+	xra	A
 	mov	M,A
 	inx	H
 	mov	M,A
 	pop	H	;HEADER ADDRESS
-	jmp	cassette_write_block ;WRITE IT out AND RETURN
+	jmp	cassette_write_block ;WRITE IT OUT AND RETURN
 ;
 ;
 ;
@@ -152,17 +155,17 @@ LFCB:	lxi	H,FCBAS	;POINT TO THE BASE OF IT
 	rar
 	ani	1
 	sta	FNUMF	;CURRENT ACCESS FILE NUMBER
-	jz	LFCB1	;UNIT ONE (VALUE OF ZERO)
+	jz	+	;UNIT ONE (VALUE OF ZERO)
 	lxi	H,FCBA2	;UNIT TWO--PT TO ITS FCB
-LFCB1:	equ	$	;HL PT TO PROPER FCB
-	mov	A,M	;PICK UP FLAGS FM FCB
-	ora	A	;SET FLAGS BASED ON CONTROL WORD
-	stc		;SET CARRY in CASE OF IMMEDIATE ERROR RETURN
++:	mov	A,M	;PICK UP FLAGS FM FCB
+	ora	A	;SET Fdecrement_de_by_chunkcLAGS BASED ON CONTROL WORD
+	stc		;SET CARRY IN CASE OF IMMEDIATE ERROR RETURN
 	ret
 
 ; --- cassette_read_byte ---
 ; Read tape byte routine.  This is used by the entry point, but
-; not any of the cassette commands.
+; not any of the cassette commands.  According to the CUTER manual
+; this is how BASIC reads/writes to tape.
 ;
 ; ENTRY:       -  A -  HAS FILE NUMBER
 ; EXIT: NORMAL -  A -  HAS BYTE
@@ -180,24 +183,25 @@ cassette_read_byte:
 	mov	A,M	;GET READ COUNT
 	push	H	;SAVE COUNT ADDRESS
 	inx	H
-	call	PLOAD	;GET THE OTHER PARAMETERS
+	call	load_BCDE	;GET THE OTHER PARAMETERS
 	pop	H
 	ora	A
-	jnz	GTBYT	;IF NOT EMPTY GO GET BYTE
-;
-;  CURSOR POSITION WAS ZERO...READ A NEW BLOCK INTO
-;  THE BUFFER.
-;
-RDNBLK:	push	D	;BUFFER POINTER
+	jnz	.get_byte_from_buffer	;IF NOT EMPTY GO GET BYTE
+	
+	;
+	;  CURSOR POSITION WAS ZERO...READ A NEW BLOCK INTO
+	;  THE BUFFER.
+	;
+	push	D	;BUFFER POINTER
 	push	H	;TABLE ADDRESS
 	inx	H
 	call	PHEAD	;PREPARE THE HEADER FOR READ
 	call	cassette_read_block ;READ IN THE BLOCK
-	jc	TERE2	;ERROR pop OFF STACK BEFORE RETURN
+	jc	TERE2	;ERROR POPP OFF STACK BEFORE RETURN
 	pop	H
 	mov	A,E	;LOW BYTE OF COUNT (WILL BE ZERO if 256)
 	ora	D	;SEE if BOTH ARE ZERO
-	jz	EOFER	;BYTE COUNT WAS ZERO....END OF FILE
+	jz	return_eof_error	;BYTE COUNT WAS ZERO....END OF FILE
 	mov	M,E	;NEW COUNT ( ZERO IS 256 AT THIS POINT)
 	inx	H	;BUFFER LOCATION POINTER
 	mvi	M,0
@@ -208,12 +212,13 @@ RDNBLK:	push	D	;BUFFER POINTER
 ;
 ;
 ;   THIS ROUTINE GETS ONE BYTE FROM THE BUFFER
-;  AND RETURNS IT in REGISTER "A".  if THE END
+;  AND RETURNS IT IN REGISTER "A".  IF THE END
 ;  OF THE BUFFER IS REACHED IT MOVES THE POINTER
 ;  TO THE BEGINNING OF THE BUFFER FOR THE NEXT
 ;  LOAD.
 ;
-GTBYT:	dcr	A	;BUMP THE COUNT
+.get_byte_from_buffer:	
+	dcr	A	;BUMP THE COUNT
 	mov	M,A	;RESTORE IT
 	inx	H
 	mov	A,M	;GET BUFFER POSITION
@@ -221,16 +226,16 @@ GTBYT:	dcr	A	;BUMP THE COUNT
 ;
 	add	E
 	mov	E,A	;DE NOW POINT TO CORRECT BUFFER POSITION
-	jnc	RT1
+	jnc	+
 	inr	D
-RT1:	ldax	D	;GET CHARACTER FROM BUFFER
++:	ldax	D	;GET CHARACTER FROM BUFFER
 	ora	A	;CLEAR CARRY
 	ret		;ALL DONE
 
 ; --- cassette_write_byte ---
 ; Write tape byte routine.  This is used by the entry point, but
-; not accessed by any commands.wait_for_tape_data
-;      ON ENTRY:   A -  HAS FILE NUMBER
+; not accessed by any commands.
+;      ON ENTRY:   A -  HAS FILE NUMBER (1 or 2)
 ;                  B -  HAS DATA BYTE
 ; --------------------------
 cassette_write_byte:
@@ -247,14 +252,14 @@ cassette_write_byte:
 ;
 ;   NOW DO THE WRITE
 ;
-	call	PLOAD	;BC GETS HEADER addr, DE BUFFER ADDRESS
+	call	load_BCDE	;BC GETS HEADER addr, DE BUFFER ADDRESS
 	pop	H
 	mov	A,M	;COUNT BYTE
 	add	E
 	mov	E,A
-	jnc	WT1
+	jnc	+
 	inr	D
-WT1:	pop	PSW	;CHARACTER
++:	pop	PSW	;CHARACTER
 	stax	D	;PUT CHR in BUFFER
 	ora	A	;CLEAR FLAGS
 	inr	M	;INCREMENT THE COUNT
@@ -272,17 +277,18 @@ WT1:	pop	PSW	;CHARACTER
 ;  THIS ROUTINE PUTS THE BLOCK SIZE (256) AND BUFFER
 ;  ADDRESS IN THE FILE HEADER.
 ;
-PHEAD:	call	PLOAD	;GET HEADER AND BUFFER ADDRESSES
+PHEAD:	call	load_BCDE	;GET HEADER AND BUFFER ADDRESSES
 	push	B	;HEADER ADDRESS
-	lxi	H,BLKOF-1	;PSTOR DOES AN INCREMENT
+	lxi	H,BLKOF-1	;store_BCDE DOES AN INCREMENT
 	dad	B	;HL POINT TO BLOCKSIZE ENTRY
 	lxi	B,256
-	call	PSTOR
+	call	store_BCDE
 	pop	H	;HL RETURN WITH HEADER ADDRESS
 	ret
 ;
 ;
-PSTOR:	inx	H
+store_BCDE:
+	inx	H
 	mov	M,C
 	inx	H
 	mov	M,B
@@ -293,7 +299,8 @@ PSTOR:	inx	H
 	ret
 ;
 ;
-PLOAD:	inx	H
+load_BCDE:
+	inx	H
 	mov	C,M
 	inx	H
 	mov	B,M
@@ -308,11 +315,11 @@ PLOAD:	inx	H
 ;
 ;              TAPE READ ROUTINES
 ;
-;     ON-ENTRY:     A HAS UNIT AND SPEED
-;                   HL POINT TO HEADER BLOCK
+;     ON-ENTRY:     FNUMF/TSPD HAS UNIT AND SPEED
+;                   HL POINT TO HEADER BLOCK (TO BE READ)
 ;                   DE HAVE OPTIONAL PUT ADDRESS
 ;
-;     ON EXIT:      CARRY IS set if ERROR OCCURED
+;     ON EXIT:      CARRY IS SET IF ERROR OCCURED
 ;                   TAPE UNITS ARE OFF
 ;
 ;
@@ -322,17 +329,17 @@ cassette_read_block:
 	call	tape_on
 	IN	TDATA	;CLEAR THE UART FLAGS
 ;
-PTAP1:	push	H	;HEADER ADDRESS
-	call	RHEAD	;GO READ HEADER
+PTAP1:	push	H	; HEADER ADDRESS
+	call	read_header	;GO READ HEADER
 	pop	H
 	jc	tape_error	;IF AN ERROR OR ESC WAS RECEIVED
-	jnz	PTAP1	;IF VALID HEADER NOT FOUND
+	jnz	PTAP1		;IF VALID HEADER NOT FOUND
 ;
 ;  FOUND A VALID HEADER NOW DO COMPARE
 ;
 	push	H	;GET BACK AND RESAVE ADDRESS
 	lxi	D,THEAD
-	call	DHCMP	;COMPARE DE-HL HEADERS
+	call	compare_names	;COMPARE DE-HL HEADERS
 	pop	H
 	jnz	PTAP1
 ;
@@ -354,15 +361,21 @@ PTAP1:	push	H	;HEADER ADDRESS
 ;          HL HAS "PUT" ADDRESS
 ;          DE HAS SIZE OF TAPE BLOCK
 ;
-RTAP:	push	D	;SAVE SIZE FOR RETURN TO callING PROGRAM
+RTAP:	push	D	;SAVE SIZE FOR RETURN TO CALLING PROGRAM
 ;
-RTAP2:	equ	$	;HERE TO LOOP RDING BLKS
-	call	DCRCT	;DROP COUNT, B=LEN THIS BLK
-	jz	tape_off	;ZERO=ALL DONE
+-:	
+	; Find out how many bytes (up to 256) to read
+	; right now.  DE gets decremented by this value
+	; and B gets this value.
+	call	decrement_de_by_block
+	
+	; If zero, turn tape off.
+	jz	tape_off
 ;
-	call	RHED1	;READ THAT MANY BYTES
+
+	call	read_chunk	;READ THAT MANY BYTES
 	jc	tape_error	;IF ERROR OR ESC
-	jz	RTAP2	;RD OK--READ SOME MORE
+	jz	-	;RD OK--READ SOME MORE
 ;
 ;  ERROR RETURN
 ;
@@ -370,74 +383,69 @@ tape_error:
 	; Turn tape off (send 0 to status) 
 	; Pop DE off the stack
 	; and return
-	stc		;SET ERROR FLAGS
+	stc	; SET ERROR FLAGS
 	jmp	tape_off
 ;
 ;
 delay_then_off:
-	mvi	B,1
-	call	DELAY
-tape_off:
-	xra	A
-	out	TAPPT
-	pop	D	;RETURN BYTE COUNT
+	mvi B,1
+	call DELAY
+	jmp tape_off
+
+; --- decrement_de_by_block ---
+; Decrements DE by up to 256 bytes, but less if necessary to prevent from rolling past zero.
+; Returns number of bytes decremented in B
+; ------------------------------
+decrement_de_by_block:
+	;COMMON RTN TO COUNT DOWN BLK LENGTHS
+	; Reset A & B
+	xra A	
+	mov B,A	
+	; Check if D is zero (less than one block left) 
+	; (in which case the amount left will be in E) 
+	ora D
+	jnz +
+	; This is the branch for less than 256 bytes left (D=0, E has remaining bytes)
+	ora E
+	; If there are zero bytes left return with zero flag set
+	rz
+	; There are some bytes, but less than one block
+	mov B,E ; Set return value to amount remaining (E)
+	mov E,D ; Set E to 0 (D was already 0)
 	ret
++:	
+	; This is the branch for more than 256 bytes left
+	dcr D	;DROP BY 256
+	ora A	;FORCE NON-ZERO FLAG
+	ret	;NON-ZERO=NOT DONE YET (BLK LEN=256)
 ;
-;
-DCRCT:	equ	$	;COMMON RTN TO COUNT DOWN BLK LENGTHS
-	xra	A	;CLR FOR LATER TESTS
-	mov	B,A	;SET THIS BLK LEN=256
-	ora	D	;IS AMNT LEFT < 256
-	jnz	dcrC2	;NO--REDUCE AMNT BY 256
-	ora	E	;IS ENTIRE COUNT ZERO
-	rz		;ALL DONE--ZERO=THIS CONDITION
-	mov	B,E	;SET THIS BLK LEN TO AMNT REMAINING
-	mov	E,D	;MAKE ENTIRE COUNT ZERO NOW
-	ret		;ALL DONE (NON-ZERO FLAG)
-dcrC2:	equ	$	;REDUCE COUNT BY 256
-	dcr	D	;DROP BY 256
-	ora	A	;FORCE NON-ZERO FLAG
-	ret		;NON-ZERO=NOT DONE YET (BLK LEN=256)
-;
-;
-;   READ THE HEADER
-;
-RHEAD:	mvi	B,10	;FIND 10 NULLS
-RHEA1:	call wait_for_tape_data	
-	rc		;IF ESCAPE
-	IN	TDATA	;IGNORE ERROR CONDITIONS
-	ora	A	;ZERO?
-	jnz	RHEAD
-	dcr	B
-	jnz	RHEA1	;LOOP UNTIL 10 in A ROW
-;
-;    WAIT FOR THE START CHARACTER
-;
-SOHL:	call	TAPIN
-	rc		;ERROR OR ESCAPE
-	cpi	1	;ARE WE AT THE 01 YET (START CHAR)
-	jc	SOHL	;NO, BUT STIL ZEROES
-	jnz	RHEAD	;NO, LOOK FOR ANOTHER 10 NULLS
-;
-;    WE HAVE  10 (OR MORE) NULLS FOLLOWED IMMEDIATELY
-;    BY AN 01.  NOW READ THE HEADER.
-;
-	lxi	H,THEAD	;POINT TO BUFFER
-	mvi	B,HLEN	;LENGTH TO READ
-;
-RHED1:	equ	$	;RD A BLOCK INTO HL FOR B BYTES
-	mvi	C,0	;INIT THE CRC
-RHED2:	equ	$	;LOOP HERE
-	call	TAPIN	;GET A BYTE
+
+; --- read_header ---
+; Find header on tape and read it into THEAD
+; -------------------
+read_header:	
+	; Find the start of a block on the tape
+	call find_block
 	rc
-	mov	M,A	;STORE IT
-	inx	H	;INCREMENT ADDRESS
-	call	DOCRC	;GO COMPUTE THE CRC
-	dcr	B	;WHOLE HEADER YET?
-	jnz	RHED2	;DO ALL THE BYTES
+
+	; We found it, so now read the header
+	lxi	H,THEAD	;POINT TO BUFFER
+	mvi	B,HLEN		;LENGTH TO READ
+	; Drop through to read_chunk
+
+read_chunk:
+	; Read a block into HL for B bytes
+	mvi	C,0	; Reset the CRC
+-:	call	TAPIN	; Read a byte
+	rc
+	mov	M,A
+	inx	H
+	call	calculate_crc
+	dcr	B
+	jnz	-
 ;
 ;   THIS ROUTINE GETS THE NEXT BYTE AND COMPARES IT
-; TO THE VALUE in REGISTER C.  THE FLAGS ARE set ON
+; TO THE VALUE in REGISTER C.  THE FLAGS ARE SET ON
 ; RETURN.
 ;
 	call	TAPIN	;GET CRC BYTE
@@ -445,7 +453,7 @@ RHED2:	equ	$	;LOOP HERE
 	rz		;CRC IS FINE
 	lda	IGNCR	;BAD CRC, SHD WE STILL ACCEPT IT
 	inr	A	;SEE if IT WAS FF, if FF THEN ZERO SAYS IGN ERR
-;   NOW, CRC ERR DETECTION DEPENds ON IGNCR.
+;   NOW, CRC ERR DETECTION DEPENDS ON IGNCR.
 	ret
 ;
 ;    THIS ROUTINE GETS THE NEXT AVAILABLE BYTE FROM THE
@@ -453,29 +461,6 @@ RHED2:	equ	$	;LOOP HERE
 ;  FOR AN ESC COMMAND.  IF RECEIVED THE TAPE LOAD IS
 ;  TERMINATED AND A RETURN TO THE COMMAND MODE IS MADE.
 ;
-wait_for_tape_data:
-	IN	TAPPT	;TAPE STATUS PORT
-	ani	TDR
-	rnz
-	call	SINP	;CHECK INPUT
-	jz wait_for_tape_data
-	ani	7FH	;CLEAR PARITY 1ST
-	jnz wait_for_tape_data ;EITHER MODE OR CTL-@
-	stc		;SET ERROR FLAG
-	ret		;AND RETURN
-;
-;
-;
-TAPIN:	
-	call	wait_for_tape_data
-	rc
-;
-TREDY:	IN	TAPPT		;TAPE STATUS
-	ani	TFE+TOE	;DATA ERROR?
-	IN	TDATA		;GET THE DATA
-	rz			;IF NO ERRORS
-	stc			;SET ERROR FLAG
-	ret
 ;
 ;
 ;  THIS ROUTINE GETS THE CORRECT UNIT FOR SYSTEM WRITES
@@ -490,7 +475,7 @@ TREDY:	IN	TAPPT		;TAPE STATUS
 ;
 cassette_write_block:
 	push	H	;SAVE HEADER ADDRESS
-	call	WHEAD	;TURN ON, THEN WRITE HDR
+	call	write_header	;TURN ON, THEN WRITE HDR
 	pop	H
 	lxi	D,BLKOF	;OFFSET TO BLOCK SIZE IN HEADER
 	dad	D	;HL POINT TO BLOCK SIZE
@@ -507,43 +492,56 @@ cassette_write_block:
 ;  TAPE "DE" BYTES LONG FROM ADDRESS "HL".
 ;
 ;
-WTAP1:	equ	$	;HERE FOR THE EXTRA push
-	push	H	;A DUMMY push FOR LATER EXIT
-WTAP2:	equ	$	;LOOP HERE UNTIL ENTIRE AMOUNT READ
-	call	DCRCT	;DROP COUNT IN DE AND set UP B W/LEN THIS BLK
-	jz	delay_then_off	;RETURNS ZERO if ALL DONE
+WTAP1:	
+	push	H	;A DUMMY PUSH FOR LATER EXIT
+-:	
+	; Find out how many bytes (up to 256) to write
+	; right now.  DE gets decremented by this value
+	; and B gets this value.
+	call	decrement_de_by_block
+	; If no more bytes, turn tape off
+	jz	delay_then_off
+	; Otherwise, write bytes
 	call	WTBL	;WRITE BLOCK FOR BYTES in B (256)
-	jmp	WTAP2	;LOOP UNTIL ALL DONE
+	jmp	-	;LOOP UNTIL ALL DONE
 ;
 ;
+; TODO: Push this to cuts.asm
 WRTAP:	push	PSW
-WRWAT:	IN	TAPPT	;TAPE STATUS
+WRWAT:	in	TAPPT	;TAPE STATUS
 	ani	TTBE	;IS TAPE READY FOR A CHAR YET
 	jz	WRWAT	;NO--WAIT
 	pop	PSW	;YES--RESTORE CHAR TO OUTPUT
-	OUT	TDATA	;SEND CHAR TO TAPE
-;
-DOCRC:	equ	$	;A COMMON CRC COMPUTATION ROUTINE
+	out	TDATA	;SEND CHAR TO TAPE
+
+; --- calculate_crc ---
+; On Entry:
+;    C contains existing CRC
+;    Accumulator contains new byte 
+; On Exit:
+;    C contains CRC modified for new byte 
+calculate_crc:
+	;A COMMON CRC COMPUTATION ROUTINE
 	sub	C
 	mov	C,A
 	xra	C
-	CMA
+	cma	
 	sub	C
 	mov	C,A
-	ret		;ONE  BYTE NOW WRITTEN
+	ret
 ;
 ;
 ;   THIS ROUTINE WRITES THE HEADER POINTED TO BY
 ;   HL TO THE TAPE.
 ;
-WHEAD:	equ	$	;HERE TO 1ST TURN ON THE TAPE
+write_header:	
 	mvi	B,4	; Set delay after tape on
 	call	tape_on	;TURN IT ON, THEN WRITE HEADER
 	mvi	D,50	;WRITE 50 ZEROS
-NULOP:	xra	A
+-:	xra	A
 	call	WRTAP
 	dcr	D
-	jnz	NULOP
+	jnz	-
 ;
 	mvi	A,1
 	call	WRTAP
@@ -559,45 +557,18 @@ WLOOP:	mov	A,M	;GET CHARACTER
 	jmp	WRTAP	;PUT IT ON THE TAPE AND RETURN
 ;
 ;
-;   THIS ROUTINE COMPARES THE HEADER IN THEAD TO
-;   THE USER SUPPLIED HEADER in ADDRESS HL.
-;   ON RETURN if ZERO IS set THE TWO NAMES COMPARED
-;
-DHCMP:	mvi	B,5
-DHLOP:	ldax	D
+
+; --- compare_names ---
+; Compare the name in THEAD to the name in the user
+; supplied header (located at HL).
+; Returns zero is the two names are the same.
+; ---------------------
+compare_names:	mvi	B,5
+-:	ldax	D
 	cmp	M
 	rnz
 	dcr	B
 	rz		;IF ALL FIVE COMPARED
 	inx	H
 	inx	D
-	jmp	DHLOP
-;
-;
-tape_on:
-	; Turn tape on and then delay (length based on B)
-	;   Status is combination of tape speed and unit 
-	;   Tape Speed: 20H or 0  
-	;   Tape Unit: Either TAPE1 (80H) or TAPE2 (40H), specified in config
-	; FNUMF will _always_ be 0 for tape 1 or 1 for tape 2
-	; This is different than CUTER where sometimes FNUMF
-	; is used for the bitmask rather than the unit number.
-	lda	FNUMF	;GET UNIT
-	ora	A	;SEE WHICH UNIT
-	lda	TSPD	;BUT 1ST GET SPEED
-	jnz	+ ;MAKE IT UNIT TWO
-	adi	TAPE2	;THIS ONCE=UNIT 2, TWICE=UNIT 1
-+:	adi	TAPE2	;UNIT AND SPEED NOW SET IN A
-
-	; Write to status port
-	OUT	TAPPT
-;
-DELAY:	lxi	D,0
--:	dcx	D
-	mov	A,D
-	ora	E
-	jnz	-
-	dcr	B
-	jnz	DELAY
-	ret
-	
+	jmp	-
