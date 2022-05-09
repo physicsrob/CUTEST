@@ -45,32 +45,86 @@ TLOAD:	xra	A	;A=0 TLOAD, A=AF (#0) THEN XEQ
 ;
 ;
 TSAVE:	equ	$	;SAVE MEMORY IMAGE TO TAPE
-	call	NAME0	;GET NAME AND UNIT
+
+	; Get name from command line and store in THEAD
+	call	NAME0
+	
+	; Get and save start address to stack
 	call	get_hex_arg	;GET START ADDRESS
-	push	H	;SAVE START addr FOR SIZE COMPUTATION LATER
+	push	H 
+	
+	; Get end address 
 	call	get_hex_arg	;GET END addr (REQUIRED)
-	xthl		;HL=START addr NOW, STACK=END addr
-	push	H	;STACK =START FOLLOWED BY END
-	call	GET_OPT_HEX_ARG	;SEE if retRIEVE FROM addr
+	
+	; Put end address in stack, and pull start address back to HL
+	xthl
+
+	; Save start address on stack
+	push	H
+
+	; Start address is now the top of the stack and also in HL
+
+	
+	; We supports overwriting the start address when saving
+	; to tape.  This allows you to specify where the saved
+	; file will be loaded to.
+	; GET_OPT_HEX_ARG will leave HL put if there's nothing
+	; else on the command line.
+	call	GET_OPT_HEX_ARG
+
+	; HL now contains the start address or the overwritten start address
+	; Save it.
 	shld	LOADR	;EITHER ACTUAL START, OR OVERRIDE INTO HDR
-	pop	H	;;HL=START addr
+
+	; Note: I think we could get rid of this pop and the corresponding push?
+	; It doesn't seem like we're manipulating HL in between.
+	pop	H	; Restore HL to start address
+	
+	; Pop the end address to DE. 
 	pop	D	;DE=END addr
-	push	H	;PUT START BACK ONTO STACK
+
+	; Put start address back onto stack
+	push	H
+	
+	; Move lower byte of end address (DE) into accumulator
 	mov	A,E	;SIZE=END-START+1
+	
+	; Subtract lower byte of start address (HL) from accumulator
 	sub	L
+	
+	; Accumulator now has the lower byte of END-START
+	; Store it in L
 	mov	L,A
+
+	; Move the upper byte of end address (DE) into accumulator
 	mov	A,D
+
+	; Subtract off the carry bit if we had a carry previously
 	sbi	0	;THIS EQUALS A "SBB H"
+
+	; Subtract the upper byte of the start address (HL)  from the accumulator
 	sub	H	;THIS IS NEEDED
+	
+	; Store result of upper byte subtraction in H (we already stored the lower byte subtraction in L)
 	mov	H,A
+
+	; Add 1, because Size = End - Start + 1
 	inx	H
+
+	; Store the size into BLOCL
 	shld	BLOCK	;STORE THE SIZE
+	
+	; Push size onto stack
 	push	H	;SAVE AS THE BLOCK SIZE
 ;
+	; Point H to THEAD, where we copied the name
 	lxi	H,THEAD	;PT TO HEADER TO WRITE
+	
+	; Write the header
 	call	write_header	;TURN TAPE ON, THEN WRITE HEADER
+
 	pop	D	;GET BACK THE SIZE
-	pop	H	;AND GET BACK THE ACTUAL START addr
+	pop	H	;AND GET BACK THE ACTUAL START ADDRESS
 	jmp	WTAP1	;WRITE THE BLK (W/EXTRA push)
 ;
 ;   OUTPUT ERROR AND HEADER
