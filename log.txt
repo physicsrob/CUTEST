@@ -55,8 +55,14 @@ May 10th part 2:
 
 next:
 - modify tape_off to not POP; all callers of tape_off/delay_tape_off/tape_error have an extra item on the stack.  Fix this.
-
+- Document cassette_write_buffer (now (^^^) that stack is fixed)
 - Clean up pass of all the function names / definitions in cuts
 - Implement them for tarbell
 
+May 12:
+Modified tape_off to not POP;  Fixed the stack for all callers
+Next:
+- Document cassette_write_buffer (now (^^^) that stack is fixed)
+- Clean up pass of all the function names / definitions in cuts
+- Implement them for tarbell
 

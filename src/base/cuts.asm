@@ -14,7 +14,6 @@ TAPE2  equ 40H       ;1=TURN TAPE TWO ON
 tape_off:
 	xra	A
 	out	TAPPT
-	pop	D	;RETURN BYTE COUNT
 	ret
 
 ;

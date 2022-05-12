@@ -356,8 +356,14 @@ cassette_read_block:
 	lhld	BLOCK	;GET BLOCK SIZE
 	xchg		;...TO DE
 ;  DE HAS HBLOCK....HL HAS USER OPTION
-	jnz	RTAP	;IF DE WAS ZERO GET TAPE LOAD ADDRESS
+	jz +
 	lhld	LOADR	;GET TAPE LOAD ADDRESS
++:
+	push D
+	call	RTAP
+	pop D	
+	ret
+
 ;
 ;
 ;     THIS ROUTINE READS "DE" BYTES FROM THE TAPE
@@ -367,7 +373,7 @@ cassette_read_block:
 ;          HL HAS "PUT" ADDRESS
 ;          DE HAS SIZE OF TAPE BLOCK
 ;
-RTAP:	push	D	;SAVE SIZE FOR RETURN TO CALLING PROGRAM
+RTAP:
 ;
 -:	
 	; Find out how many bytes (up to 256) to read
@@ -377,7 +383,6 @@ RTAP:	push	D	;SAVE SIZE FOR RETURN TO CALLING PROGRAM
 	
 	; If zero, turn tape off.
 	jz	tape_off
-;
 
 	call	read_chunk	;READ THAT MANY BYTES
 	jc	tape_error	;IF ERROR OR ESC
@@ -499,7 +504,6 @@ cassette_write_block:
 ;
 ;
 cassette_write_buffer:	
-	push	H	;A DUMMY PUSH FOR LATER EXIT
 -:	
 	; Find out how many bytes (up to 256) to write
 	; right now.  DE gets decremented by this value
