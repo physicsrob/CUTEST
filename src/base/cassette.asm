@@ -158,7 +158,7 @@ LFCB:	lxi	H,FCBAS	;POINT TO THE BASE OF IT
 	jz	+	;UNIT ONE (VALUE OF ZERO)
 	lxi	H,FCBA2	;UNIT TWO--PT TO ITS FCB
 +:	mov	A,M	;PICK UP FLAGS FM FCB
-	ora	A	;SET Fdecrement_de_by_chunkcLAGS BASED ON CONTROL WORD
+	ora	A	;SET FLAGS BASED ON CONTROL WORD
 	stc		;SET CARRY IN CASE OF IMMEDIATE ERROR RETURN
 	ret
 
@@ -309,31 +309,37 @@ load_BCDE:
 	inx	H
 	mov	D,M
 	ret
+
+
+; ---------------------------------------------;
 ;
+; cassette_read_block
 ;
+; Reads a file, including the header, from tape.
+; Turns the tape on (if using CUTS)
+; On entry:
+;	Tape speed and unit from SET is used, this is different than SOLOS/CUTER
+;	HL contains the address of file header information.
+;	DE contains the address-of where the file is to be loaded into memory.
+;		If set to 0, this information is taken from file header information on tape.)
+; On exit:
+;	Normal return: Carry Flag is cleared, and data has been transferred into memory.
+; 	Error return: On errors, or user pressing MODE (or Control-@) from keyboard, the Carry Flag is set.
 ;
-;
-;              TAPE READ ROUTINES
-;
-;     ON-ENTRY:     FNUMF/TSPD HAS UNIT AND SPEED
-;                   HL POINT TO HEADER BLOCK (TO BE READ)
-;                   DE HAVE OPTIONAL PUT ADDRESS
-;
-;     ON EXIT:      CARRY IS SET IF ERROR OCCURED
-;                   TAPE UNITS ARE OFF
-;
-;
+; Tape units will be turned off before returning.
+; ---------------------------------------------;
 cassette_read_block:	
 	push	D	;SAVE OPTIONAL ADDRESS
 	mvi	B,3	;SHORT DELAY
 	call	tape_on
 	IN	TDATA	;CLEAR THE UART FLAGS
 ;
-PTAP1:	push	H	; HEADER ADDRESS
+-:
+	push	H	; HEADER ADDRESS
 	call	read_header	;GO READ HEADER
 	pop	H
 	jc	tape_error	;IF AN ERROR OR ESC WAS RECEIVED
-	jnz	PTAP1		;IF VALID HEADER NOT FOUND
+	jnz 	-		;IF VALID HEADER NOT FOUND
 ;
 ;  FOUND A VALID HEADER NOW DO COMPARE
 ;
@@ -341,7 +347,7 @@ PTAP1:	push	H	; HEADER ADDRESS
 	lxi	D,THEAD
 	call	compare_names	;COMPARE DE-HL HEADERS
 	pop	H
-	jnz	PTAP1
+	jnz	-
 ;
 ;
 	pop	D	;OPTIONAL "PUT" ADDRESS
@@ -367,7 +373,7 @@ RTAP:	push	D	;SAVE SIZE FOR RETURN TO CALLING PROGRAM
 	; Find out how many bytes (up to 256) to read
 	; right now.  DE gets decremented by this value
 	; and B gets this value.
-	call	decrement_de_by_block
+	call	decrement_de_by_page
 	
 	; If zero, turn tape off.
 	jz	tape_off
@@ -392,11 +398,11 @@ delay_then_off:
 	call DELAY
 	jmp tape_off
 
-; --- decrement_de_by_block ---
+; --- decrement_de_by_page ---
 ; Decrements DE by up to 256 bytes, but less if necessary to prevent from rolling past zero.
 ; Returns number of bytes decremented in B
 ; ------------------------------
-decrement_de_by_block:
+decrement_de_by_page:
 	;COMMON RTN TO COUNT DOWN BLK LENGTHS
 	; Reset A & B
 	xra A	
@@ -456,23 +462,23 @@ read_chunk:
 ;   NOW, CRC ERR DETECTION DEPENDS ON IGNCR.
 	ret
 ;
-;    THIS ROUTINE GETS THE NEXT AVAILABLE BYTE FROM THE
-;  TAPE.  WHILE WAITING FOR THE BYTE THE KEYBOARD IS TESTED
-;  FOR AN ESC COMMAND.  IF RECEIVED THE TAPE LOAD IS
-;  TERMINATED AND A RETURN TO THE COMMAND MODE IS MADE.
+
+
+
+; ---------------------------------------------;
 ;
+; cassette_write_block
 ;
+; Called by: WRBLK entry point; all byte-access routines (to write the buffer)
 ;
-;  THIS ROUTINE GETS THE CORRECT UNIT FOR SYSTEM WRITES
-;
-;
-;
-;       WRITE TAPE BLOCK ROUTINE
-;
-;   ON ENTRY:   A   HAS UNIT AND SPEED
-;              HL   HAS POINTER TO HEADER
-;
-;
+; Write a file, including the header, to tape.
+; Turns the tape on (if using CUTS)
+; On entry:
+;	Tape speed and unit from SET is used, this is different than SOLOS/CUTER
+;	HL contains the address to store the file header information.
+; On exit:
+;	Normal return: Carry Flag is cleared, and data has been written to tape.
+; ---------------------------------------------;
 cassette_write_block:
 	push	H	;SAVE HEADER ADDRESS
 	call	write_header	;TURN ON, THEN WRITE HDR
@@ -492,27 +498,18 @@ cassette_write_block:
 ;  TAPE "DE" BYTES LONG FROM ADDRESS "HL".
 ;
 ;
-WTAP1:	
+cassette_write_buffer:	
 	push	H	;A DUMMY PUSH FOR LATER EXIT
 -:	
 	; Find out how many bytes (up to 256) to write
 	; right now.  DE gets decremented by this value
 	; and B gets this value.
-	call	decrement_de_by_block
+	call	decrement_de_by_page
 	; If no more bytes, turn tape off
 	jz	delay_then_off
 	; Otherwise, write bytes
-	call	WTBL	;WRITE BLOCK FOR BYTES in B (256)
+	call	cassette_write_buffer_page	;WRITE BLOCK FOR BYTES in B (256)
 	jmp	-	;LOOP UNTIL ALL DONE
-;
-;
-; TODO: Push this to cuts.asm
-WRTAP:	push	PSW
-WRWAT:	in	TAPPT	;TAPE STATUS
-	ani	TTBE	;IS TAPE READY FOR A CHAR YET
-	jz	WRWAT	;NO--WAIT
-	pop	PSW	;YES--RESTORE CHAR TO OUTPUT
-	out	TDATA	;SEND CHAR TO TAPE
 
 ; --- calculate_crc ---
 ; On Entry:
@@ -529,32 +526,25 @@ calculate_crc:
 	sub	C
 	mov	C,A
 	ret
+
+; ------------------------------;
+; cassette_write_buffer_page
+; 
+; This routine writes B bytes to the current tape, followed by a CRC.
 ;
-;
-;   THIS ROUTINE WRITES THE HEADER POINTED TO BY
-;   HL TO THE TAPE.
-;
-write_header:	
-	mvi	B,4	; Set delay after tape on
-	call	tape_on	;TURN IT ON, THEN WRITE HEADER
-	mvi	D,50	;WRITE 50 ZEROS
--:	xra	A
-	call	WRTAP
-	dcr	D
-	jnz	-
-;
-	mvi	A,1
-	call	WRTAP
-	mvi	B,HLEN	;LENGTH TO WRITE OUT
-;
-WTBL:	mvi	C,0	;RESET CRC BYTE
-WLOOP:	mov	A,M	;GET CHARACTER
-	call	WRTAP	;WRITE IT TO THE TAPE
+; On entry:
+;	HL points to buffer to be written
+;	B contains number of bytes
+; ------------------------------;
+cassette_write_buffer_page:
+	mvi	C,0	;RESET CRC BYTE
+-:	mov	A,M	;GET CHARACTER
+	call	cassette_output_byte	;WRITE IT TO THE TAPE
 	dcr	B
 	inx	H
-	jnz	WLOOP
+	jnz	-
 	mov	A,C	;GET CRC
-	jmp	WRTAP	;PUT IT ON THE TAPE AND RETURN
+	jmp	cassette_output_byte	;PUT IT ON THE TAPE AND RETURN
 ;
 ;
 

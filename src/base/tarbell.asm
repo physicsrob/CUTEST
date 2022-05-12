@@ -19,6 +19,11 @@ wait_for_tape_data:
 	stc ;SET ERROR FLAG
 	ret ;AND RETURN
 
+tape_on:
+       ; We don't support tape control yet.
+       ; So this is a noop.
+       ret
+
 TAPIN:	
 	call wait_for_tape_data
 	rc

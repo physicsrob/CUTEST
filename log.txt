@@ -17,4 +17,46 @@ Next steps:
 - Put keyboard back together
 - Consider python tool for building tapes so that I can create a bunch of tapes quickly with lots of good software
 
+May 8th:
+Reevaluating the best next steps.  I'm thinking if I can get just one command, let's say SAVE (base/command/cassette.asm TSAVE), working then I can test it in isolation with my tarbell_test stuff.
+Proposed workflow:
+- Try to complete TSAVE code path
+- Get it to assemble
+- Assemble with hypothetically working TSAVE, no VDM (so serial port is pseudoport 0), and based at an address like 8000
+- Load compiled cutest with AMON
+- Test
+- Repeat
+
+So, I'm going to start working on the TSAVE path.
+
+I added comments to TSAVE.  Everything seems reasonable.  It calls write_header and WTAP1.  I need to follow those two next.
+It looks like we'll need to move some code from cassette.asm to cuts.asm / tarbell.asm.  We probably want a write_header that's different for each?  And a tape_on that's different for each?
+
+
+May 10th:
+Starting with investigation of tape_on
+We have exactly three users:
+in command/cassette.asm TLIST calls tape_on then read_header
+in base/cassette.asm cassette_read_block calls tape_on (and then read_header shortly after)
+in base/cassette.asm write_header calls tape_on
+
+Seems like a good plan would be:
+1. Move read_header/write_header to cuts/tarbell
+2. Add tape_on to read_header / write_header
+TLIST calls read_header repeatedly.  Problem?
+
+Next:
+- Get rid of OUT TAPPT in startup  (call reset_tape ?)
+- Move write_header to cuts/tarbell
+
+
+May 10th part 2:
+- Renamed WRTAP cassette_output_byte, moved to cuts 
+
+next:
+- modify tape_off to not POP; all callers of tape_off/delay_tape_off/tape_error have an extra item on the stack.  Fix this.
+
+- Clean up pass of all the function names / definitions in cuts
+- Implement them for tarbell
+
 

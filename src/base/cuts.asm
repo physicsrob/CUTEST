@@ -49,6 +49,39 @@ wait_for_tape_data:
 	jnz wait_for_tape_data ;EITHER MODE OR CTL-@
 	stc		;SET ERROR FLAG
 	ret		;AND RETURN
+
+
+;
+;
+; TODO: Push this to cuts.asm
+cassette_output_byte:
+	push	PSW
+-:	in	TAPPT	;TAPE STATUS
+	ani	TTBE	;IS TAPE READY FOR A CHAR YET
+	jz	- ;NO--WAIT
+	pop	PSW	;YES--RESTORE CHAR TO OUTPUT
+	out	TDATA	;SEND CHAR TO TAPE
+	jmp calculate_crc
+
+;
+;
+;   THIS ROUTINE WRITES THE HEADER POINTED TO BY
+;   HL TO THE TAPE.
+;
+write_header:	
+	mvi	B,4	; Set delay after tape on
+	call	tape_on	;TURN IT ON, THEN WRITE HEADER
+	mvi	D,50	;WRITE 50 ZEROS
+-:	xra	A
+	call	cassette_output_byte
+	dcr	D
+	jnz	-
+;
+	mvi	A,1
+	call	cassette_output_byte
+	mvi	B,HLEN	;LENGTH TO WRITE OUT
+	
+	jmp cassette_write_buffer_page
 ;
 ;
 ;
