@@ -498,11 +498,16 @@ cassette_write_block:
 	inx	H
 	mov	H,M
 	mov	L,A	;HL HAVE STARTING ADDRESS
+	; Fall through to cassette_write_buffer
+
+; ----------------------- ;
+; cassette_write_buffer
 ;
-;    THIS ROUTINE WRITES ONE PHYSICAL BLOCK ON THE
-;  TAPE "DE" BYTES LONG FROM ADDRESS "HL".
-;
-;
+; This routine writes one physical block to tape.
+; On entry:
+;	DE contains number of bytes to write
+;	HL contains address of buffer 
+; ----------------------- ;
 cassette_write_buffer:	
 -:	
 	; Find out how many bytes (up to 256) to write
