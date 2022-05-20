@@ -8,5 +8,6 @@
 	include startup.asm
 	include command/command.asm
 	include cassette.asm
-	include cuts.asm
+	;include cuts.asm
+	include tarbell.asm
 	include memory.asm

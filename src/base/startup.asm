@@ -21,8 +21,9 @@ startup_a:	xra	A
 ;     THIS COULD BECOME "mvi A,XX" FOR YOUR SPECIFIC PORTS
 	IN	SENSE_PORT	;GET SWITCHES
 ;
-	mov	B,A	;SAVE IT
 	ani	3	;MAKE IT A VALID PORT
+	mov	B,A	;SAVE IT
+
 	sta	DFLTS+1	;SET DEFAULT OUTPUT PORT
 	
 	ifdef USEVDM 
@@ -49,10 +50,6 @@ startup_d:
 	setup_routine 2
 	setup_routine 3
 
-COMN1:	equ	$	;HERE TO TURN OFF TAPES, THEN COMMAND MODE
-	xra	A
-	OUT	TAPPT	;BE SURE TAPES ARE OFF
-
 	;
 	; Setup command table
 	;
@@ -76,3 +73,7 @@ COMN1:	equ	$	;HERE TO TURN OFF TAPES, THEN COMMAND MODE
 	cmp m
 	cz EXT_ADDRESS 
 	endif
+
+COMN1:
+	; Jump here to turn off tapes then command mode
+	call cassette_tape_off

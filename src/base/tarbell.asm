@@ -4,6 +4,7 @@ tarbell_sync_byte    equ 0E6H
 tarbell_presync_byte equ 03CH
 tarbell_reset        equ 10H
 tarbell_dataready    equ 10H
+tarbell_header_nulls equ 10
 
 ; --- wait_for_tape_data ---
 ; Loop until data is ready or escape
@@ -11,30 +12,66 @@ tarbell_dataready    equ 10H
 wait_for_tape_data:
 	in tarbell_status
 	ani tarbell_dataready
-       rnz
-	call SINP	;CHECK INPUT
-	jz wait_for_tape_data
-	ani 7FH	;CLEAR PARITY 1ST
-	jnz wait_for_tape_data ;EITHER MODE OR CTL-@
-	stc ;SET ERROR FLAG
+       ;rnz
+	;call SINP	;CHECK INPUT
+	jnz wait_for_tape_data
+	;ani 7FH	;CLEAR PARITY 1ST
+	;jnz wait_for_tape_data ;EITHER MODE OR CTL-@
+	;stc ;SET ERROR FLAG
 	ret ;AND RETURN
 
-tape_on:
+cassette_tape_on:
        ; We don't support tape control yet.
-       ; So this is a noop.
+       ; So this is a noop other than the delay.
+       ; (Delay specified in B)
+       jmp DELAY
+
+cassette_tape_off:
+       ; We don't support tape control yet.
        ret
 
-TAPIN:	
+cassette_input_byte:	
 	call wait_for_tape_data
-	rc
        in tarbell_data
        ret
 
-;
-; --- find_block ---
-; Reads from tape until the beginning of a block is found or an escape key is pressed
+cassette_output_byte:
+       push psw
+.loop: 
+       in tarbell_status
+       ani 20h
+       jnz .loop
+       pop psw
+       out tarbell_data
+	jmp calculate_crc
+
+
+cassette_write_header:
+       mvi a, 03Ch
+       call cassette_output_byte
+        
+       mvi a, 0E6h
+       call cassette_output_byte
+       
+       
+       ; Write the pattern of 10 nulls followed by a 1
+       mvi b, tarbell_header_nulls ; Find 10 nulls
+.nulls_loop:
+       xra a
+       call cassette_output_byte
+       dcr b
+       jnz .nulls_loop
+
+       mvi a, 1
+       call cassette_output_byte
+       
+	mvi	B,HLEN	;LENGTH TO WRITE OUT
+	jmp cassette_write_buffer_page
+
+; --- cassette_read_until_header ---
+; Read from the cassette until we find a header or an escape key is pressed.
 ; ------------------
-find_block:
+cassette_read_until_header:
        ; Reset the tarbell unit
        ; This will get it in the state where it's searching for the sync byte (E6)
 	mvi a, tarbell_reset
@@ -44,35 +81,39 @@ find_block:
        ; Data will be available the byte after the sync byte (this is handled by the
        ; tarbell hardware).  DE will be our counter for how many times we polled for
        ; data.  We'll increment it until it rolls over
+       debug_print "cassette_read_until_header poll start\n"
        lxi d, 0
 .poll:
 	in tarbell_status
 	ani tarbell_dataready
        jz .data_ready
+       xra a
        inx d
 	cmp d		; If d != 0
-	jnz .loop	; read more
+	jnz .poll	; read more
 	cmp e		; if e != 0
-	jnz .loop	; read more
+	jnz .poll	; read more
 
        ; If we get here we've timed out, so we start over unless an escape key was pressed
        call SINP	;CHECK INPUT
-	jz find_block ; No key was pressed
-	cpi 7F
+	jz cassette_read_until_header ; No key was pressed
+	cpi 3 ; 7FH
+       stc
        rz ; Break if 7F was pressed (mode or CTL-@)
-       jmp find_block
+       jmp cassette_read_until_header
 
 .data_ready:
+       ;debug_print "cassette_read_until_header data ready\n"
        ; If we get here we've gotten the sync byte
        ; Next we need to check for our pattern of 10 nulls followed by a 1
-       mvi b, 10 ; Find 10 nulls
+       mvi b, tarbell_header_nulls ; Find 10 nulls
 .nulls_loop:
        call wait_for_tape_data
        rc ; Abort if escape
        in tarbell_data
        ora A ; Check if null
        ; If it's not null, we start over!
-       jnz find_block
+       jnz cassette_read_until_header
        ; It is null, we decrement
        dcr b
        jnz .nulls_loop
@@ -80,10 +121,12 @@ find_block:
        ; If we get here, we successfully read 10 nulls! congrats!
        ; the next byte _must_ be the start char (1)
 ;
--:	call TAPIN
+-:	call cassette_input_byte
 	rc		; Escape
 	cpi 1
-       jnz find_block ; If it's not 1, we have to start looking for a block again!
+;       call debug_state
+       jnz cassette_read_until_header ; If it's not 1, we have to start looking for a block again!
        ; Otherwise, success!!! 
+ ;      debug_print "Success"
        ret
        

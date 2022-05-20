@@ -1,3 +1,4 @@
+- fix front switch reading
 - refactor unit support
 - fix intel hex read
 - add tarbell support

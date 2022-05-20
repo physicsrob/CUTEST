@@ -67,3 +67,32 @@ Next:
 - Clean up pass of all the function names / definitions in cuts
 - Implement them for tarbell
 
+May 17:
+- Finished cleaning up function names / definitions
+- Implemented tarbell version
+- Tried loading
+
+Reading / writing has gotten unreliable.  Ugh.
+I'm going to add the BYTE test programs to tarbell_test, in order to debug and cleanup the adjustments
+
+- Implemented BYTE test program, and tweaking alignment -- Using the BYTE program is definitely the way to go!
+- Saved a file using CUTEST "SA TST C000 C010"
+- Loaded using tarbell_test "TI 1000 100".
+- Resulted in error, just as I would expect, but the great thing is upon examination!
+
+> DU 1000 1020
+1000 00 00 00 00 00 00 00 00 00 00 01 7F C3 78 C2 C3 
+1010 CC C2 C3 E1 C5 C3 04 C6 C3 47 C6 C3 00 80 00 00 
+1020 00 
+> DU C000 C020
+C000 7F C3 78 C2 C3 CC C2 C3 E1 C5 C3 04 C6 C3 47 C6 
+C010 C3 84 C6 C3 CC C6 C3 80 C7 3A 03 D8 C3 3E C0 3A 
+C020 02 
+
+It looks like we got the 10 nulls, followed by 01, but we missed the header! PROGRESS!
+I found the problem in code and fixed it.  Next time need to try again
+
+Next:
+- Write some test files using CUTEST
+- Read them use tarbell_test / CUTEST if I'm lucky
+

@@ -331,10 +331,11 @@ load_BCDE:
 cassette_read_block:	
 	push	D	;SAVE OPTIONAL ADDRESS
 	mvi	B,3	;SHORT DELAY
-	call	tape_on
-	IN	TDATA	;CLEAR THE UART FLAGS
+	debug_print "cassette_read_block"
+	call	cassette_tape_on
 ;
 -:
+	debug_print "cassette_read_block loop"
 	push	H	; HEADER ADDRESS
 	call	read_header	;GO READ HEADER
 	pop	H
@@ -356,7 +357,7 @@ cassette_read_block:
 	lhld	BLOCK	;GET BLOCK SIZE
 	xchg		;...TO DE
 ;  DE HAS HBLOCK....HL HAS USER OPTION
-	jz +
+	jnz +
 	lhld	LOADR	;GET TAPE LOAD ADDRESS
 +:
 	push D
@@ -382,7 +383,7 @@ RTAP:
 	call	decrement_de_by_page
 	
 	; If zero, turn tape off.
-	jz	tape_off
+	jz	cassette_tape_off
 
 	call	read_chunk	;READ THAT MANY BYTES
 	jc	tape_error	;IF ERROR OR ESC
@@ -391,17 +392,18 @@ RTAP:
 ;  ERROR RETURN
 ;
 tape_error:	
+	debug_print "tape_error"
 	; Turn tape off (send 0 to status) 
 	; Pop DE off the stack
 	; and return
 	stc	; SET ERROR FLAGS
-	jmp	tape_off
+	jmp	cassette_tape_off
 ;
 ;
 delay_then_off:
 	mvi B,1
 	call DELAY
-	jmp tape_off
+	jmp cassette_tape_off
 
 ; --- decrement_de_by_page ---
 ; Decrements DE by up to 256 bytes, but less if necessary to prevent from rolling past zero.
@@ -435,9 +437,12 @@ decrement_de_by_page:
 ; Find header on tape and read it into THEAD
 ; -------------------
 read_header:	
+	;debug_print "reading until header"
 	; Find the start of a block on the tape
-	call find_block
+	call cassette_read_until_header
+	;debug_print "return"
 	rc
+	;debug_print "found header"
 
 	; We found it, so now read the header
 	lxi	H,THEAD	;POINT TO BUFFER
@@ -445,9 +450,11 @@ read_header:
 	; Drop through to read_chunk
 
 read_chunk:
+	;debug_print "reading chunk"
 	; Read a block into HL for B bytes
 	mvi	C,0	; Reset the CRC
--:	call	TAPIN	; Read a byte
+-:	call	cassette_input_byte	; Read a byte
+	;call debug_a_psw
 	rc
 	mov	M,A
 	inx	H
@@ -459,9 +466,10 @@ read_chunk:
 ; TO THE VALUE in REGISTER C.  THE FLAGS ARE SET ON
 ; RETURN.
 ;
-	call	TAPIN	;GET CRC BYTE
+	call	cassette_input_byte	;GET CRC BYTE
 	xra	C	;CLR CARRY AND set ZERO if MATCH, ELSE NON-ZERO
 	rz		;CRC IS FINE
+	debug_print "bad crc"
 	lda	IGNCR	;BAD CRC, SHD WE STILL ACCEPT IT
 	inr	A	;SEE if IT WAS FF, if FF THEN ZERO SAYS IGN ERR
 ;   NOW, CRC ERR DETECTION DEPENDS ON IGNCR.
@@ -486,7 +494,7 @@ read_chunk:
 ; ---------------------------------------------;
 cassette_write_block:
 	push	H	;SAVE HEADER ADDRESS
-	call	write_header	;TURN ON, THEN WRITE HDR
+	call	cassette_write_header	;TURN ON, THEN WRITE HDR
 	pop	H
 	lxi	D,BLKOF	;OFFSET TO BLOCK SIZE IN HEADER
 	dad	D	;HL POINT TO BLOCK SIZE

@@ -1,4 +1,4 @@
-INCLUDE_DEBUG equ False
+INCLUDE_DEBUG equ True
        if INCLUDE_DEBUG = True
 
 ; sleep 
@@ -38,8 +38,8 @@ debug_print: macro str
 	db 0
 .prnt:	lxi h, .x
 	call write_line
-	mvi a, 250
-	call sleep 
+	;mvi a, 250
+	;call sleep 
        pop h
 	pop d
 	pop b
@@ -100,8 +100,8 @@ debug_state:
 	call write_crlf
 
        
-       mvi a, 255
-       call sleep 
+       ; mvi a, 255
+       ; call sleep 
 	pop h
 	pop d
 	pop b
@@ -125,8 +125,8 @@ debug_a_psw:
 	call write_crlf
 	
 	
-	mvi a, 255
-       call sleep 
+	; mvi a, 255
+       ; call sleep 
 	pop h
 	pop d
 	pop b
