@@ -9,8 +9,8 @@
 ; D000 - D7FF CUTEST EXT    (2k)
 ; D800 - DFFF CUTEST MEMORY (2k)
 
-BASE_ADDRESS  equ 03000H
-EXT_ADDRESS   equ 04000H
+BASE_ADDRESS  equ 0C000H
+EXT_ADDRESS   equ 0D000H
 MEM_ADDRESS   equ 0D800H 
 MEM_SIZE      equ 0800H     ; 2k memory
 SENSE_PORT    equ 0FFH      ;SENSE SWITCHES
@@ -38,15 +38,15 @@ escape_key_test: MACRO
 
 
        ; Pseudoport 0 = Processor Tech VDM1 + Keyboard
-       ;ADD_PSEUDOPORT       0, \
-       ;                    VDM=TRUE, \
-       ;                    DATAPORT=3, \
-       ;                    STATUSPORT=0, \
-       ;                    READMASK=1, \
-       ;                    READINVERT=TRUE
+       ADD_PSEUDOPORT       0, \
+                          VDM=TRUE, \
+                          DATAPORT=3, \
+                          STATUSPORT=0, \
+                          READMASK=1, \
+                          READINVERT=TRUE
 
        ; Pseudoport 1 =  882SIO port 1
-       ADD_PSEUDOPORT       0, \
+       ADD_PSEUDOPORT       1, \
                             DATAPORT=11h, \
                             STATUSPORT=10h, \
                             READMASK=1, \
