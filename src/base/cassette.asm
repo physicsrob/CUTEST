@@ -331,11 +331,9 @@ load_BCDE:
 cassette_read_block:	
 	push	D	;SAVE OPTIONAL ADDRESS
 	mvi	B,3	;SHORT DELAY
-	debug_print "cassette_read_block"
 	call	cassette_tape_on
 ;
 -:
-	debug_print "cassette_read_block loop"
 	push	H	; HEADER ADDRESS
 	call	read_header	;GO READ HEADER
 	pop	H
@@ -392,7 +390,6 @@ RTAP:
 ;  ERROR RETURN
 ;
 tape_error:	
-	debug_print "tape_error"
 	; Turn tape off (send 0 to status) 
 	; Pop DE off the stack
 	; and return
@@ -437,12 +434,9 @@ decrement_de_by_page:
 ; Find header on tape and read it into THEAD
 ; -------------------
 read_header:	
-	;debug_print "reading until header"
 	; Find the start of a block on the tape
 	call cassette_read_until_header
-	;debug_print "return"
 	rc
-	;debug_print "found header"
 
 	; We found it, so now read the header
 	lxi	H,THEAD	;POINT TO BUFFER
@@ -450,11 +444,9 @@ read_header:
 	; Drop through to read_chunk
 
 read_chunk:
-	;debug_print "reading chunk"
 	; Read a block into HL for B bytes
 	mvi	C,0	; Reset the CRC
 -:	call	cassette_input_byte	; Read a byte
-	;call debug_a_psw
 	rc
 	mov	M,A
 	inx	H
@@ -469,7 +461,6 @@ read_chunk:
 	call	cassette_input_byte	;GET CRC BYTE
 	xra	C	;CLR CARRY AND set ZERO if MATCH, ELSE NON-ZERO
 	rz		;CRC IS FINE
-	debug_print "bad crc"
 	lda	IGNCR	;BAD CRC, SHD WE STILL ACCEPT IT
 	inr	A	;SEE if IT WAS FF, if FF THEN ZERO SAYS IGN ERR
 ;   NOW, CRC ERR DETECTION DEPENDS ON IGNCR.

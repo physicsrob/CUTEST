@@ -90,7 +90,7 @@ read_loop:	\
 
 	; Check for restart characters
 	; which is 80 hex
-	ani	7FH	
+	escape_key_test
 	jz	startup_d
 
 	; Check for CR or LF, in either case finish the line

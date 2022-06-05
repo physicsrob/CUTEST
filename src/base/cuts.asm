@@ -50,8 +50,8 @@ wait_for_tape_data:
 	rnz
 	call	SINP	;CHECK INPUT
 	jz wait_for_tape_data
-	ani	7FH	;CLEAR PARITY 1ST
-	jnz wait_for_tape_data ;EITHER MODE OR CTL-@
+	escape_key_test	
+	jnz wait_for_tape_data 
 	stc		;SET ERROR FLAG
 	ret		;AND RETURN
 

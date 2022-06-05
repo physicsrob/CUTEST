@@ -8,6 +8,10 @@
 	include startup.asm
 	include command/command.asm
 	include cassette.asm
-	;include cuts.asm
+	if TAPE_DRIVER = "CUTS"
+	include cuts.asm
+	endif
+	if TAPE_DRIVER = "TARBELL"
 	include tarbell.asm
+	endif
 	include memory.asm

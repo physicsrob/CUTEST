@@ -96,3 +96,28 @@ Next:
 - Write some test files using CUTEST
 - Read them use tarbell_test / CUTEST if I'm lucky
 
+May 20th:
+I just successfully read!  So things that definitely work in CUTER with tarbell:
+- save
+- get
+- catalog
+
+I'm pretty satisfied!
+
+Next:
+- Remove all the debug prints
+- Compile with VDM-1 support, verify that we're still within the memory constraints
+- Update Tarbell / CUTS toggle to be configurable
+- Compile with VDM-1 support and CUTS, verify we're still within memory constraints
+
+May 22nd:
+- Removed debug prints
+- Refactors ctrl-C / escape key check across code
+- Updated tarbell / CUTS to be configurable within config.asm
+- Tested sizes still fit
+
+Next:
+- Testing
+- Burn ROMs
+- Software to generate tape
+

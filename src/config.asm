@@ -22,15 +22,28 @@ AUTOLOAD_EXT  equ True
 VDM_MEM       equ 0CC00H    ; VDM SCREEN MEMORY
 VDM_STAT_PORT equ 0C8H      ; VDM CONTROL PORT
 
+; Uncomment either CUTS or TARBELL
+;TAPE_DRIVER   equ "CUTS"
+TAPE_DRIVER   equ "TARBELL"
+
+
+escape_key_test: MACRO
+       ; Check for control-C
+	cpi 3
+       ; Original SOLOS/CUTER behavior:
+       ; Check for "EITHER MODE OR CTL-@""
+	; ani	7FH
+       ENDM
+
 
 
        ; Pseudoport 0 = Processor Tech VDM1 + Keyboard
        ;ADD_PSEUDOPORT       0, \
-       ;                     VDM=TRUE, \
-       ;                     DATAPORT=3, \
-       ;                     STATUSPORT=0, \
-       ;                     READMASK=1, \
-       ;                     READINVERT=TRUE
+       ;                    VDM=TRUE, \
+       ;                    DATAPORT=3, \
+       ;                    STATUSPORT=0, \
+       ;                    READMASK=1, \
+       ;                    READINVERT=TRUE
 
        ; Pseudoport 1 =  882SIO port 1
        ADD_PSEUDOPORT       0, \

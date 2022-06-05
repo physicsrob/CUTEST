@@ -12,12 +12,7 @@ tarbell_header_nulls equ 10
 wait_for_tape_data:
 	in tarbell_status
 	ani tarbell_dataready
-       ;rnz
-	;call SINP	;CHECK INPUT
 	jnz wait_for_tape_data
-	;ani 7FH	;CLEAR PARITY 1ST
-	;jnz wait_for_tape_data ;EITHER MODE OR CTL-@
-	;stc ;SET ERROR FLAG
 	ret ;AND RETURN
 
 cassette_tape_on:
@@ -81,7 +76,6 @@ cassette_read_until_header:
        ; Data will be available the byte after the sync byte (this is handled by the
        ; tarbell hardware).  DE will be our counter for how many times we polled for
        ; data.  We'll increment it until it rolls over
-       debug_print "cassette_read_until_header poll start\n"
        lxi d, 0
 .poll:
 	in tarbell_status
@@ -97,13 +91,12 @@ cassette_read_until_header:
        ; If we get here we've timed out, so we start over unless an escape key was pressed
        call SINP	;CHECK INPUT
 	jz cassette_read_until_header ; No key was pressed
-	cpi 3 ; 7FH
+       escape_key_test 
        stc
-       rz ; Break if 7F was pressed (mode or CTL-@)
+       rz ; Break if ESCAPE_KEY pressed 
        jmp cassette_read_until_header
 
 .data_ready:
-       ;debug_print "cassette_read_until_header data ready\n"
        ; If we get here we've gotten the sync byte
        ; Next we need to check for our pattern of 10 nulls followed by a 1
        mvi b, tarbell_header_nulls ; Find 10 nulls
@@ -124,9 +117,6 @@ cassette_read_until_header:
 -:	call cassette_input_byte
 	rc		; Escape
 	cpi 1
-;       call debug_state
        jnz cassette_read_until_header ; If it's not 1, we have to start looking for a block again!
-       ; Otherwise, success!!! 
- ;      debug_print "Success"
        ret
        
