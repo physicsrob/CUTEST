@@ -21,10 +21,8 @@ NUCNT:	ds	1	;NUMBER OF NULLS AFTER CRLF
 IGNCR:	ds	1	;IGN CRC ERR FLAG, FF=IGN CRC ERRS, ELSE=NORMAL
 inhex_port: ds 1
 inhex_sum: ds 1
-SETHELP_CMD: ds 2
 
 ;
-	ds	6	;ROOM FOR FUTURE EXPANSION
 ;
 ; * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
 ;    T H I S   I S   T H E   H E A D E R   L A Y O U T    *

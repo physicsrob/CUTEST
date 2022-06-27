@@ -52,7 +52,7 @@ cassette_open:
 	lxi	D,FBUF1	;POINT TO BUFFER AREA
 	lda	FNUMF	;GET WHICH ONE WE ARE GOING TO USE
 	add	D
-	mov	D,A	;256 bit add
+	mov	D,A	;256 byte add
 	
 	pop	B	;HEADER ADDRESS
 	ora	A	;CLEAR CARRY AND RETURN AFTER STORING PARAMS
